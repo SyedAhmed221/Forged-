@@ -1,0 +1,12 @@
+{
+  "name": "@tikquick/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@tikquick/shared": "*"
+  }
+}
