@@ -295,11 +295,11 @@ export function Studio() {
                 </span>
                 <label htmlFor="encoder">
                   <strong>
-                    Optimise video for TikTok <span>OPTIONAL</span>
+                    Re-encode before patching <span>OPTIONAL</span>
                   </strong>
                   <small>
-                    Enable this if your video has not already been exported or
-                    compressed. Processing may take longer.
+                    Leave off to preserve quality without re-encoding. Enable
+                    only if your video needs compression before patching.
                   </small>
                 </label>
                 <input
@@ -430,9 +430,18 @@ export function Studio() {
                   </Button>
                 )}
                 {job.status === 'completed' && (
-                  <Button onClick={() => action('download')}>
-                    <Download size={17} /> Download video
-                  </Button>
+                  <>
+                    <Button onClick={() => action('download')}>
+                      <Download size={17} /> Download video
+                    </Button>
+                    {job.output_metadata?.validation === 'tikquick_content' && (
+                      <p>
+                        Video content verified. Download the original TikQuick
+                        patch for upload to TikTok. Its special timing samples
+                        may prevent playback in ordinary video players.
+                      </p>
+                    )}
+                  </>
                 )}
                 {['queued', 'processing'].includes(job.status) && (
                   <Button

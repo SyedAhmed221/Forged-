@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
-import { inspectMedia } from '../../services/worker/src/media';
+import { inspectProviderMedia } from '../../services/worker/src/provider-media';
 
 // Opt in with a dedicated confirmed account and an owned sample. Never save auth traces.
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
@@ -75,7 +75,7 @@ test('client can sign in, upload, process, download and delete a video', async (
   expect(await download.failure()).toBeNull();
   const output = testInfo.outputPath('client-result.mp4');
   await download.saveAs(output);
-  await inspectMedia(output, AbortSignal.timeout(60000), true);
+  await inspectProviderMedia(output, AbortSignal.timeout(60000));
 
   await page.goto('/history');
   const row = page

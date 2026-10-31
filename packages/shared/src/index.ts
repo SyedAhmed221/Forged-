@@ -13,6 +13,8 @@ export const statuses = [
 ] as const;
 export type JobStatus = (typeof statuses)[number];
 export type MediaMetadata = {
+  validation?: 'tikquick_content';
+  padding_samples?: number;
   duration: number;
   format: string;
   streams: {

@@ -5,6 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { createWriteStream } from 'node:fs';
 import { TikQuick } from '../services/worker/src/providers/tikquick';
 import { inspectMedia } from '../services/worker/src/media';
+import { inspectProviderMedia } from '../services/worker/src/provider-media';
 // Explicitly opt-in: this sends the sample video to TikQuick and may incur provider usage.
 if (
   process.env.LIVE_TIKQUICK_TEST !== 'true' ||
@@ -44,7 +45,7 @@ await pipeline(
   createWriteStream(output),
   { signal },
 );
-const metadata = await inspectMedia(output, signal, true);
+const metadata = await inspectProviderMedia(output, signal);
 console.log(
   JSON.stringify({ result: 'validated', output, duration: metadata.duration }),
 );

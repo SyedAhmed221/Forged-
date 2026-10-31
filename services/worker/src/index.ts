@@ -12,6 +12,7 @@ import {
 } from '../../../packages/shared/src/storage';
 import { TikQuick } from './providers/tikquick';
 import { inspectMedia } from './media';
+import { inspectProviderMedia } from './provider-media';
 import {
   claim,
   workerPool,
@@ -146,7 +147,7 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
     await updateJob(db, job.id, { provider_stage: 'verifying' });
     await toFile(outputKey, join(dir, 'output.mp4'), signal);
     outputValidationStarted = true;
-    const output = await inspectMedia(join(dir, 'output.mp4'), signal, true);
+    const output = await inspectProviderMedia(join(dir, 'output.mp4'), signal);
     await db.query('begin');
     try {
       const result = await db.query(
