@@ -72,3 +72,9 @@ The test submits one real job, checks refresh recovery, downloads and validates 
 Typecheck, lint, changed-file formatting, 23 unit tests and eight public browser checks passed. Four disposable-database tests were skipped. Vercel's recent production error-log query returned no error logs; the provider failure was recorded by the local worker.
 
 References: [Supabase email delivery](https://supabase.com/docs/guides/auth/auth-smtp), [TikQuick provider contract](https://tikquick.online/thirdparty-apidocs.txt), and [local worker instructions](local-worker.md).
+
+## Grouped video follow-up
+
+Two additional failed uploads were reproduced with explicit owner approval. The 1080×1920 120fps file fully decoded all 1,264 real frames, but FFprobe emitted its selected stream twice in CSV because it also belongs to a stream group. Converting that multiline result to a number incorrectly rejected the file. Frame counting now reads the single top-level stream from JSON. A regression test covers grouped and ordinary output as well as missing, invalid and ambiguous counts.
+
+Both reproduced files now pass content validation (1,264 and 192 real frames respectively). A generated eight-second 60fps sample also passes, alongside the prior 30fps samples. Private footage remains in ignored local diagnostics and is not committed.

@@ -2,10 +2,22 @@ import { execFile } from 'node:child_process';
 import { open, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { AppError } from '@tikquick/shared';
+import { z } from 'zod';
 import { inspectMedia } from './media';
 
 const exec = promisify(execFile);
 const padding = Buffer.from('0000000400000000', 'hex');
+
+export function decodedFrameCount(value: unknown) {
+  // Grouped files repeat streams in stream_groups. Count the top-level stream.
+  return z
+    .object({
+      streams: z
+        .array(z.object({ nb_read_frames: z.coerce.number().int().positive() }))
+        .length(1),
+    })
+    .parse(value).streams[0].nb_read_frames;
+}
 
 // TikQuick v23 references the same empty H.264 NAL repeatedly at the end of
 // its sample table. These are patch instructions, not additional video frames.
@@ -120,12 +132,13 @@ export async function inspectProviderMedia(path: string, signal: AbortSignal) {
           '-show_entries',
           'stream=nb_read_frames',
           '-of',
-          'csv=p=0',
+          'json',
           validationPath,
         ],
         { signal, timeout: 15 * 60 * 1000, maxBuffer: 1024 * 1024 },
       );
-      if (Number(frames.stdout.trim()) !== suffix.real) throw error;
+      if (decodedFrameCount(JSON.parse(frames.stdout)) !== suffix.real)
+        throw error;
       return {
         ...metadata,
         validation: 'tikquick_content' as const,

@@ -6,7 +6,25 @@ import { inspectMedia } from '../services/worker/src/media';
 import {
   inspectProviderMedia,
   paddingSuffix,
+  decodedFrameCount,
 } from '../services/worker/src/provider-media';
+
+it('counts selected frames once for grouped and ordinary media', () => {
+  expect(
+    decodedFrameCount({
+      stream_groups: [{ streams: [{ nb_read_frames: '1264' }] }],
+      streams: [{ nb_read_frames: '1264' }],
+    }),
+  ).toBe(1264);
+  expect(decodedFrameCount({ streams: [{ nb_read_frames: '192' }] })).toBe(192);
+  for (const streams of [
+    [],
+    [{ nb_read_frames: 'N/A' }],
+    [{ nb_read_frames: 0 }],
+    [{ nb_read_frames: 2 }, { nb_read_frames: 2 }],
+  ])
+    expect(() => decodedFrameCount({ streams })).toThrow();
+});
 
 it('recognizes only a trailing repeated eight-byte sample reference', () => {
   expect(
