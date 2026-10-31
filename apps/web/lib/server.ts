@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { AppError } from '@tikquick/shared';
+import { databaseOptions } from '../../../packages/shared/src/database';
 let pool: Pool;
 export function database() {
   if (!process.env.DATABASE_URL)
@@ -12,7 +13,10 @@ export function database() {
       503,
     );
   return (pool ??= new Pool({
-    connectionString: process.env.DATABASE_URL,
+    ...databaseOptions(
+      process.env.DATABASE_URL,
+      process.env.SUPABASE_CA_CERT_PEM,
+    ),
     max: 3,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 10000,
