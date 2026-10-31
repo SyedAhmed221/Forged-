@@ -76,7 +76,10 @@ const server = createServer(async (req, res) => {
   }
   res.statusCode = 404;
   res.end('{}');
-}).listen(Number(process.env.PORT || 8080), '0.0.0.0');
+}).listen(
+  Number(process.env.PORT || 8080),
+  process.env.WORKER_BIND_HOST || '0.0.0.0',
+);
 
 async function processJob(db: PoolClient, job: ClaimedJob) {
   const controller = new AbortController();
@@ -101,6 +104,7 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
   const dir = await mkdtemp(join(tmpdir(), 'forged-'));
   const outputKey = `output/${job.user_id}/${job.id}.mp4`;
   let completionStarted = false;
+  let outputValidationStarted = false;
   try {
     await toFile(job.source_object_key, join(dir, 'source'), signal);
     const input = await inspectMedia(join(dir, 'source'), signal);
@@ -141,6 +145,7 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
     );
     await updateJob(db, job.id, { provider_stage: 'verifying' });
     await toFile(outputKey, join(dir, 'output.mp4'), signal);
+    outputValidationStarted = true;
     const output = await inspectMedia(join(dir, 'output.mp4'), signal, true);
     await db.query('begin');
     try {
@@ -164,11 +169,17 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
     }
   } catch (e) {
     await remove(outputKey).catch(() => {});
-    const code = completionStarted
-      ? 'COMPLETION_UNKNOWN'
-      : e instanceof AppError
-        ? e.code
-        : 'PROCESSING_FAILED';
+    const invalidOutput =
+      outputValidationStarted &&
+      e instanceof AppError &&
+      e.code === 'INVALID_MEDIA';
+    const code = invalidOutput
+      ? 'OUTPUT_INVALID'
+      : completionStarted
+        ? 'COMPLETION_UNKNOWN'
+        : e instanceof AppError
+          ? e.code
+          : 'PROCESSING_FAILED';
     await db
       .query(
         "update video_jobs set status=case when cancel_requested then 'cancelled' else 'failed' end,error_code=$3,error_message=$4,lease_expires_at=null where id=$1 and worker_id=$2 and status='processing'",
@@ -176,11 +187,13 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
           job.id,
           workerId,
           code,
-          completionStarted
-            ? 'Completion was interrupted or the result could not be validated. Submit a new job to try again.'
-            : e instanceof AppError
-              ? e.message
-              : 'The video could not be processed. Please try a new upload.',
+          invalidOutput
+            ? 'TikQuick returned a video that failed playback validation. The result has been withheld.'
+            : completionStarted
+              ? 'Completion was interrupted or the result could not be validated. Submit a new job to try again.'
+              : e instanceof AppError
+                ? e.message
+                : 'The video could not be processed. Please try a new upload.',
         ],
       )
       .catch(() => {});

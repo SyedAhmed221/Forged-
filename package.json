@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "npm run dev -w @tikquick/web",
     "build": "npm run build -w @tikquick/web",
-    "worker": "tsx --env-file=.env services/worker/src/index.ts",
+    "worker": "node --env-file=.env --import ./scripts/local-worker-env.mjs --import tsx services/worker/src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
