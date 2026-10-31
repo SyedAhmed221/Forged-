@@ -9,7 +9,7 @@ import {
 } from '../services/worker/src/providers/tikquick';
 const uuid = '12345678-1234-1234-1234-123456789abc';
 const encoded = Buffer.from(
-  `https://encoder.tikquick.online/out/${uuid}.mp4`,
+  `https://vapi.tikqcapi.site/out/${uuid}.mp4`,
 ).toString('base64');
 it('parses split SSE frames, CRLF, malformed messages and rendering percentages', async () => {
   const parts = [
@@ -52,7 +52,7 @@ it('uses 1-based encoder chunks, reconnects SSE, then initializes placeholders a
     if (u.pathname.endsWith('genenc'))
       return Response.json({
         token: 'enc',
-        encoder_server: 'https://encoder.tikquick.online',
+        encoder_server: 'https://vapi.tikqcapi.site',
       });
     if (u.pathname === '/api/make')
       return Response.json({ jobid: 'job', jobtoken: 'secret' });

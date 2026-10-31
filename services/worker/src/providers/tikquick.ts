@@ -6,7 +6,7 @@ import { AppError, byteRanges, ENCODER_MAX_BYTES } from '@tikquick/shared';
 const hosts = {
   passport: ['tikquick.online'],
   ps: ['ps.tikquick.online', 'tqps.mikeden.site'],
-  encoder: ['encoder.tikquick.online'],
+  encoder: ['encoder.tikquick.online', 'vapi.tikqcapi.site'],
 };
 export function approvedBase(value: string, kind: keyof typeof hosts) {
   const u = new URL(value);
@@ -76,7 +76,7 @@ export type Hooks = {
 type Session = { job_id: string; job_otu: string };
 export function encoderOutputId(
   encoded: string,
-  origin = 'https://encoder.tikquick.online',
+  origin = 'https://vapi.tikqcapi.site',
 ) {
   if (encoded.length > 2048 || !/^[-A-Za-z0-9+/]+={0,2}$/.test(encoded))
     throw new ProviderError('ENCODER_OUTPUT_URL');
@@ -169,7 +169,7 @@ export class TikQuick {
     );
     this.ps = approvedBase(config.ps || 'https://ps.tikquick.online', 'ps');
     this.encoder = approvedBase(
-      config.encoder || 'https://encoder.tikquick.online',
+      config.encoder || 'https://vapi.tikqcapi.site',
       'encoder',
     );
     this.fetcher = config.fetch || fetch;

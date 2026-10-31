@@ -2,34 +2,57 @@
 
 Production URL: https://forged-gamma.vercel.app
 
-**The site is not yet accepted as a working upload-to-download demo.** Public pages work, but authenticated production operations and successful provider output still need acceptance.
+**The application is live, but successful video processing and download are blocked by TikQuick's output. It is not yet accepted as a complete client demo.**
 
-## Verified
+## Fixed and deployed
 
-- All six public pages return HTTP 200; no browser runtime exceptions were observed.
-- Eight desktop/mobile browser tests passed against production: navigation, optional encoder default, file selection/type validation, original preview, account forms, privacy controls, and denial of unauthenticated API requests.
-- Vercel production is READY at commit `89af6af`; the audit fixes below have not yet been released.
-- Local worker health returns HTTP 200. It remains dependent on this PC being awake and online.
-- Supabase tables have RLS and the security advisor returns no findings.
-- The previously passwordless `forged_web` login now authenticates through transaction pooling with verified TLS and no administrator privileges.
-- Production database connection, public CA bundle, bucket endpoint/name, and quota settings were saved to Vercel. A new deployment is required to consume them.
-- Typecheck, lint, production build, and 20 unit tests passed after the database TLS change; four disposable-database tests were skipped.
+Commit `e4e5ad88fb2674ba9a0ca77eeef89291aee7d52b` is deployed in production, Vercel deployment `dpl_xusa5bXZL2v5E42SCNCYNc8K9FKC`, status READY.
 
-## Remaining release gates
+- Configured the restricted `forged_web` database login and verified transaction-pooler access without administrator privileges.
+- Added serverless public CA bundle support with certificate and hostname verification.
+- Saved the database connection, CA bundle, bucket endpoint/name, quotas and file limit in Vercel production. The user added the separate Vercel R2 credentials.
+- Added an explicitly enabled authenticated browser acceptance test. Credentials remain in ignored local files; authentication traces/screenshots/video recordings are disabled.
+- Supabase security advisors report no findings.
 
-| Gate                                    | Evidence and required action                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vercel storage credentials              | At audit time neither `R2_ACCESS_KEY_ID` nor `R2_SECRET_ACCESS_KEY` existed. Add the separate bucket-scoped Vercel credentials as production secrets. The local worker credentials remain local.                                                                                                                                                                                                                                                                                   |
-| Release serverless TLS support          | `SUPABASE_CA_CERT_PEM` is now supported by the web database helper. Publish this code and rebuild production after its secrets are complete. The CA is public; database passwords must remain secret.                                                                                                                                                                                                                                                                              |
-| Client login                            | No Supabase users existed at audit time. Email confirmation is enabled. Verify custom SMTP and the production site/redirect URLs for public signup; Supabase's built-in email delivery only supports organization team addresses. For a private demo, create a dedicated confirmed account through Supabase Authentication → Users → Add user → Create user, without sending an invitation.                                                                                        |
-| TikQuick standard processing            | Two fresh main-host synthetic jobs returned binary files, but both failed FFmpeg decoding, including a relaxed diagnostic decode (exit 69). Results remain withheld as `OUTPUT_INVALID`. A separate fresh job on the documented alternative host accepted initialization/chunks but returned HTTP 404 at completion. Obtain provider clarification or a known-good supported sample. Do not repeat completion for an existing session or remove validation to manufacture success. |
-| Optional preprocessing                  | Implemented, default off, mocked contract tests pass; no live encoder-to-patched-download success is recorded. Test after standard output is resolved.                                                                                                                                                                                                                                                                                                                             |
-| Authenticated isolation and lifecycle   | Verify real login, direct browser upload, sealed source, explicit start, refresh/polling, download/playback, history, cancellation, deletion, quota and two-account isolation. No successful production journey is claimed yet.                                                                                                                                                                                                                                                    |
-| Worker availability and storage cleanup | Local mode is sufficient only while this PC runs. Before an unattended release, provide a continuously available worker and verify R2 expiry/multipart lifecycle rules.                                                                                                                                                                                                                                                                                                            |
+## Live browser results
 
-Chrome playback additionally confirmed the output issue: the original five-second sample played to completion with 150 frames, while TikQuick's output stopped with `MEDIA_ERR_DECODE` at 4.777 seconds after 145 frames. This is not solely a strict FFmpeg validation failure.
+| Feature                                                 | Result                                                                                                                                                      |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public pages and mobile layout                          | All six pages HTTP 200; eight desktop/mobile browser tests passed.                                                                                          |
+| Confirmed demo account sign-in                          | Passed with the dedicated account created by the user.                                                                                                      |
+| Dashboard and usage                                     | Authenticated job-list and usage APIs returned HTTP 200; dashboard rendered.                                                                                |
+| Direct browser upload to private R2                     | Passed with a generated five-second portrait MP4.                                                                                                           |
+| Upload sealing and explicit start                       | Passed; the worker claimed the queued job.                                                                                                                  |
+| Refresh and status polling                              | Passed; the reloaded studio displayed the final processing failure.                                                                                         |
+| Standard provider processing                            | Failed as `OUTPUT_INVALID`; no download was published.                                                                                                      |
+| Video history and account settings                      | Passed; the failed job and correct account were displayed.                                                                                                  |
+| Delete video                                            | Passed through the history UI. The generated job disappeared and a database check confirmed its row was removed.                                            |
+| Download and full playback                              | Blocked by provider failure.                                                                                                                                |
+| Optional preprocessing                                  | Live encoder, PS handoff and binary response succeeded with the corrected encoder origin; returned output still failed media validation.                    |
+| Public signup/email delivery                            | Not verified. Email confirmation is enabled; configure/verify custom SMTP and exact production redirect URLs before allowing arbitrary client registration. |
+| Two-account isolation, cancellation and outage recovery | Automated coverage exists for parts of these paths; complete live acceptance remains outstanding.                                                           |
 
-## Reproducible browser acceptance
+The generated end-to-end job was `2a9ed707-9813-4809-a105-c567f6b5bd5e`. It was deleted after the checks. No client footage was used.
+
+## Provider blocker
+
+Two fresh standalone main-host synthetic jobs returned binary files, but both failed strict FFmpeg full decoding. A relaxed diagnostic decode also failed (exit 69). Chrome played the original five-second sample to completion with 150 frames; the corresponding returned output stopped with `MEDIA_ERR_DECODE` at 4.777 seconds after 145 frames. This is not solely an overly strict validation setting.
+
+A separate fresh job on the documented alternative PS host accepted initialization/chunks but returned HTTP 404 at completion. The complete deployed browser → R2 → queue → worker → TikQuick journey reproduced `OUTPUT_INVALID`.
+
+Obtain a provider correction or a known-good supported sample and validation requirements, then rerun standard processing and optional preprocessing. Do not repeat completion for an existing session, bypass validation, or offer an unvalidated file as a successful result.
+
+## Provider comparison follow-up
+
+The current TikQuick guide was rechecked and is unchanged. Its standard API sequence matches the worker. RTXFury's public patcher uses its own `/api/patch-rtx` endpoint and RTX engine; its page does not expose an alternative TikQuick request sequence. It recommends H.264 input, which our generated tests already used.
+
+The optional TikQuick encoder initially failed because the live `genenc` response names `https://vapi.tikqcapi.site`, while the worker allowed and configured only the guide's older host. The exact new host was added to the allowlist and local configuration. A fresh synthetic encoder test then completed token creation, chunk upload, rendering, PS handoff and binary response, but the output still failed full media decoding. This fixes a separate optional-path configuration error; it does not establish a playable result. The standard provider output remains blocked.
+
+## Availability
+
+The local worker health check returns HTTP 200. The demo relies on this PC remaining awake and online. Before an unattended release, provide a continuously available worker and verify R2 expiry and incomplete-multipart lifecycle rules. For a private demonstration, the confirmed demo account avoids reliance on confirmation email delivery.
+
+## Reproduce acceptance
 
 Public production checks, without starting a local web server:
 
@@ -38,12 +61,14 @@ $env:PLAYWRIGHT_BASE_URL = 'https://forged-gamma.vercel.app'
 node node_modules/@playwright/test/cli.js test tests/e2e/studio.spec.ts
 ```
 
-For the real client journey, fill the ignored `.env.demo.local` with a dedicated confirmed account's `E2E_EMAIL` and `E2E_PASSWORD`, an owned `E2E_SAMPLE_PATH`, `PLAYWRIGHT_BASE_URL`, and `LIVE_CLIENT_TEST=true`. Use a generated sample rather than client footage. Run from the repository root:
+For the real client journey, fill the ignored `.env.demo.local` with a dedicated confirmed account's `E2E_EMAIL` and `E2E_PASSWORD`, an owned `E2E_SAMPLE_PATH`, `PLAYWRIGHT_BASE_URL`, and `LIVE_CLIENT_TEST=true`. Run from the repository root:
 
 ```powershell
 node --env-file=.env --env-file=.env.demo.local node_modules/@playwright/test/cli.js test tests/e2e/client-flow.spec.ts --project=desktop
 ```
 
-This submits one real job, checks refresh recovery, saves the download under ignored test results, fully decodes it with FFmpeg, verifies history, and requests deletion of that test video. It fails on a failed provider result. Authentication traces, screenshots and videos are disabled for this test. Passing the public checks alone is not client acceptance. The test account and generated sample should be removed after acceptance.
+The test submits one real job, checks refresh recovery, downloads and fully decodes a successful result, verifies history and deletes that test video. It currently fails at the provider result as expected; a separate live browser check verified history, settings and deletion. Passing public checks alone is not client acceptance.
+
+Typecheck, lint, production build, changed-file formatting, 20 unit tests and eight public browser checks passed. Four disposable-database tests were skipped. Vercel's recent production error-log query returned no error logs; the provider failure was recorded by the local worker.
 
 References: [Supabase email delivery](https://supabase.com/docs/guides/auth/auth-smtp), [TikQuick provider contract](https://tikquick.online/thirdparty-apidocs.txt), and [local worker instructions](local-worker.md).
