@@ -5,7 +5,7 @@ import { AppError, byteRanges, ENCODER_MAX_BYTES } from '@tikquick/shared';
 
 const hosts = {
   passport: ['tikquick.online'],
-  ps: ['ps.tikquick.online', 'tqps.mikeden.site'],
+  ps: ['byte.tikqcapi.site', 'ps.tikquick.online', 'tqps.mikeden.site'],
   encoder: ['encoder.tikquick.online', 'vapi.tikqcapi.site'],
 };
 export function approvedBase(value: string, kind: keyof typeof hosts) {
@@ -167,7 +167,7 @@ export class TikQuick {
       config.passport || 'https://tikquick.online',
       'passport',
     );
-    this.ps = approvedBase(config.ps || 'https://ps.tikquick.online', 'ps');
+    this.ps = approvedBase(config.ps || 'https://byte.tikqcapi.site', 'ps');
     this.encoder = approvedBase(
       config.encoder || 'https://vapi.tikqcapi.site',
       'encoder',

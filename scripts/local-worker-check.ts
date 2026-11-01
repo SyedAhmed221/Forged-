@@ -101,7 +101,7 @@ try {
     }
     stage = 'provider_health';
     const response = await fetch(
-      `${process.env.TIKQUICK_PS_URL || 'https://ps.tikquick.online'}/api/psver`,
+      `${process.env.TIKQUICK_PS_URL || 'https://byte.tikqcapi.site'}/api/psver`,
       { redirect: 'error', signal: AbortSignal.timeout(10000) },
     );
     const status = await response.json();
