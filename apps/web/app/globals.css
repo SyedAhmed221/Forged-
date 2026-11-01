@@ -2172,6 +2172,61 @@ td {
     margin: 0 6px;
   }
 }
+.auto-post-panel {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 520px);
+  margin: 20px auto 0;
+  padding: 22px;
+  border: 1px solid #5b2c3a;
+  border-radius: 12px;
+  background: #21151b;
+  text-align: left;
+}
+.auto-post-panel h4 {
+  margin: 0;
+  font-size: 20px;
+}
+.auto-post-panel label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.auto-post-panel input:not([type='checkbox']),
+.auto-post-panel select,
+.auto-post-panel textarea {
+  width: 100%;
+  padding: 12px;
+  color: var(--text);
+  border: 1px solid #62525a;
+  border-radius: 8px;
+  background: #17161a;
+  font: inherit;
+}
+.auto-post-panel a {
+  color: #ff6b90;
+  text-decoration: underline;
+}
+.post-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400 !important;
+}
+.post-consent input {
+  margin-top: 5px;
+}
+.auto-post-button {
+  padding: 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #ff245c;
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+}
+.auto-post-button:disabled {
+  opacity: 0.5;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *:before,

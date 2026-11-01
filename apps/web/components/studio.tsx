@@ -42,6 +42,19 @@ export function Studio() {
   const [id, setId] = useState<string>();
   const [maxSize, setMaxSize] = useState(MAX_INPUT_BYTES);
   const [signedIn, setSignedIn] = useState(false);
+  const [zernioKey, setZernioKey] = useState('');
+  const [zernioAccounts, setZernioAccounts] = useState<
+    { id: string; username: string }[]
+  >([]);
+  const [postAccount, setPostAccount] = useState('');
+  const [privacyOptions, setPrivacyOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [privacy, setPrivacy] = useState('');
+  const [caption, setCaption] = useState('');
+  const [postConsent, setPostConsent] = useState(false);
+  const [postBusy, setPostBusy] = useState(false);
+  const [postResult, setPostResult] = useState('');
   const xhr = useRef<XMLHttpRequest | null>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -168,6 +181,85 @@ export function Studio() {
       }
     } catch (e) {
       setError((e as Error).message);
+    }
+  }
+  async function connectZernio() {
+    setPostBusy(true);
+    setError('');
+    try {
+      const result = await api<{
+        accounts: { id: string; username: string }[];
+      }>('/api/zernio', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: zernioKey }),
+      });
+      setZernioAccounts(result.accounts);
+      setPostAccount('');
+      setPrivacy('');
+      setPrivacyOptions([]);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPostBusy(false);
+    }
+  }
+  async function selectPostAccount(accountId: string) {
+    setPostAccount(accountId);
+    setPrivacy('');
+    if (!accountId) {
+      setPrivacyOptions([]);
+      return;
+    }
+    setPostBusy(true);
+    setError('');
+    try {
+      const info = await api<{
+        privacyLevels: { value: string; label: string }[];
+      }>('/api/zernio', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: zernioKey, accountId }),
+      });
+      setPrivacyOptions(info.privacyLevels);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPostBusy(false);
+    }
+  }
+  async function publishToTikTok() {
+    if (!id || !postAccount || !privacy || !postConsent) return;
+    setPostBusy(true);
+    setError('');
+    try {
+      const result = await api<{
+        status: string;
+        url: string | null;
+        error: string | null;
+      }>('/api/zernio/publish', {
+        method: 'POST',
+        body: JSON.stringify({
+          apiKey: zernioKey,
+          jobId: id,
+          accountId: postAccount,
+          caption,
+          privacyLevel: privacy,
+          allowComment: true,
+          allowDuet: false,
+          allowStitch: false,
+          previewConfirmed: true,
+          consentGiven: true,
+        }),
+      });
+      setPostResult(
+        result.error ||
+          `TikTok posting status: ${result.status}. Check your Zernio account for the final result.`,
+      );
+      setZernioKey('');
+      setPostConsent(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPostBusy(false);
     }
   }
   return (
@@ -441,6 +533,109 @@ export function Studio() {
                         may prevent playback in ordinary video players.
                       </p>
                     )}
+                    <div className="auto-post-panel">
+                      <h4>Post directly to TikTok</h4>
+                      <p>
+                        Use your own Zernio API key. It stays in this page
+                        session and is sent securely to Forged only when you
+                        connect or post.
+                      </p>
+                      <label htmlFor="zernio-key">Zernio API key</label>
+                      <input
+                        id="zernio-key"
+                        type="password"
+                        autoComplete="off"
+                        placeholder="Paste your Zernio API key"
+                        value={zernioKey}
+                        onChange={(e) => setZernioKey(e.target.value)}
+                      />
+                      <a
+                        href="https://zernio.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Get your API key or connect TikTok in Zernio ↗
+                      </a>
+                      <Button
+                        variant="secondary"
+                        onClick={connectZernio}
+                        disabled={postBusy || !zernioKey}
+                      >
+                        Connect Zernio
+                      </Button>
+                      {zernioAccounts.length > 0 && (
+                        <>
+                          <label htmlFor="post-account">TikTok account</label>
+                          <select
+                            id="post-account"
+                            value={postAccount}
+                            onChange={(e) =>
+                              void selectPostAccount(e.target.value)
+                            }
+                          >
+                            <option value="">Choose an account</option>
+                            {zernioAccounts.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                @{account.username}
+                              </option>
+                            ))}
+                          </select>
+                          <label htmlFor="post-caption">Caption</label>
+                          <textarea
+                            id="post-caption"
+                            value={caption}
+                            maxLength={2200}
+                            rows={3}
+                            onChange={(e) => setCaption(e.target.value)}
+                            placeholder="Write your TikTok caption"
+                          />
+                          <label htmlFor="post-privacy">
+                            Who can see this post?
+                          </label>
+                          <select
+                            id="post-privacy"
+                            value={privacy}
+                            onChange={(e) => setPrivacy(e.target.value)}
+                          >
+                            <option value="">Choose privacy</option>
+                            {privacyOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <label className="post-consent">
+                            <input
+                              type="checkbox"
+                              checked={postConsent}
+                              onChange={(e) => setPostConsent(e.target.checked)}
+                            />
+                            I have reviewed this video and caption and consent
+                            to posting it to the selected TikTok account.
+                          </label>
+                          <button
+                            type="button"
+                            className="auto-post-button"
+                            disabled={
+                              postBusy ||
+                              !postAccount ||
+                              !privacy ||
+                              !caption.trim() ||
+                              !postConsent
+                            }
+                            onClick={() => void publishToTikTok()}
+                          >
+                            {postBusy ? 'POSTING…' : '♪ AUTO POST TO TIKTOK'}
+                          </button>
+                        </>
+                      )}
+                      {zernioAccounts.length === 0 && zernioKey && (
+                        <p>
+                          Connect a TikTok account in Zernio before posting.
+                        </p>
+                      )}
+                      {postResult && <p role="status">{postResult}</p>}
+                    </div>
                   </>
                 )}
                 {['queued', 'processing'].includes(job.status) && (

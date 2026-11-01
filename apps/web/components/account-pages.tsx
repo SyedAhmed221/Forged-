@@ -522,11 +522,14 @@ export function Settings() {
           <div>
             <strong>TikTok publishing</strong>
             <p>
-              Forged does not connect to or publish on your TikTok account.
-              Download your video and upload it yourself.
+              You can post a completed video using your own Zernio API key and a
+              TikTok account connected in Zernio. Your key is used for this page
+              session and is not saved by Forged. Posting requires your explicit
+              consent. When you post, the video is copied to Zernio’s temporary
+              storage, where Zernio controls retention.
             </p>
           </div>
-          <span className="small-tag">DISABLED</span>
+          <span className="small-tag">OPTIONAL</span>
         </div>
       </section>
       <section className="panel settings-section danger-section">
