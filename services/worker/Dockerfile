@@ -9,7 +9,8 @@ RUN npm ci
 COPY packages/shared packages/shared
 COPY services/worker services/worker
 COPY tsconfig.json ./
+COPY scripts/local-worker-env.mjs scripts/local-worker-env.mjs
 USER node
 ENV NODE_ENV=production
 EXPOSE 8080
-CMD ["node", "--import", "tsx", "services/worker/src/index.ts"]
+CMD ["node", "--import", "./scripts/local-worker-env.mjs", "--import", "tsx", "services/worker/src/index.ts"]
