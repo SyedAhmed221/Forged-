@@ -262,10 +262,7 @@ export function Studio() {
           consentGiven: true,
         }),
       });
-      setPostResult(
-        result.error ||
-          `TikTok posting status: ${result.status}. Check your Zernio account for the final result.`,
-      );
+      setPostResult(result.error || `TikTok posting status: ${result.status}.`);
       setZernioKey('');
       setPostConsent(false);
     } catch (e) {
