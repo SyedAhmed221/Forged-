@@ -7,6 +7,11 @@ export const workerPool = new Pool({
   max: 5,
   connectionTimeoutMillis: 5000,
 });
+// pg emits errors from idle clients on the pool. Without a listener, a brief
+// pooler disconnect terminates the whole worker instead of allowing reconnect.
+workerPool.on('error', () => {
+  console.error(JSON.stringify({ event: 'worker_idle_connection_lost' }));
+});
 export type ClaimedJob = {
   id: string;
   user_id: string;
