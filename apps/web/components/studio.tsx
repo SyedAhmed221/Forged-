@@ -51,6 +51,12 @@ export function Studio() {
     { value: string; label: string }[]
   >([]);
   const [privacy, setPrivacy] = useState('');
+  const [postInteractions, setPostInteractions] = useState<
+    Record<string, { enabled?: boolean }>
+  >({});
+  const [allowComment, setAllowComment] = useState(false);
+  const [allowDuet, setAllowDuet] = useState(false);
+  const [allowStitch, setAllowStitch] = useState(false);
   const [caption, setCaption] = useState('');
   const [postConsent, setPostConsent] = useState(false);
   const [postBusy, setPostBusy] = useState(false);
@@ -208,6 +214,7 @@ export function Studio() {
     setPrivacy('');
     if (!accountId) {
       setPrivacyOptions([]);
+      setPostInteractions({});
       return;
     }
     setPostBusy(true);
@@ -215,11 +222,16 @@ export function Studio() {
     try {
       const info = await api<{
         privacyLevels: { value: string; label: string }[];
+        interactions: Record<string, { enabled?: boolean }>;
       }>('/api/zernio', {
         method: 'POST',
         body: JSON.stringify({ apiKey: zernioKey, accountId }),
       });
       setPrivacyOptions(info.privacyLevels);
+      setPostInteractions(info.interactions || {});
+      setAllowComment(false);
+      setAllowDuet(false);
+      setAllowStitch(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -243,9 +255,9 @@ export function Studio() {
           accountId: postAccount,
           caption,
           privacyLevel: privacy,
-          allowComment: true,
-          allowDuet: false,
-          allowStitch: false,
+          allowComment,
+          allowDuet,
+          allowStitch,
           previewConfirmed: true,
           consentGiven: true,
         }),
@@ -604,6 +616,42 @@ export function Studio() {
                               </option>
                             ))}
                           </select>
+                          <label className="post-consent">
+                            <input
+                              type="checkbox"
+                              checked={allowComment}
+                              disabled={
+                                postInteractions.allow_comment?.enabled ===
+                                false
+                              }
+                              onChange={(e) =>
+                                setAllowComment(e.target.checked)
+                              }
+                            />
+                            Allow comments
+                          </label>
+                          <label className="post-consent">
+                            <input
+                              type="checkbox"
+                              checked={allowDuet}
+                              disabled={
+                                postInteractions.allow_duet?.enabled === false
+                              }
+                              onChange={(e) => setAllowDuet(e.target.checked)}
+                            />
+                            Allow duets
+                          </label>
+                          <label className="post-consent">
+                            <input
+                              type="checkbox"
+                              checked={allowStitch}
+                              disabled={
+                                postInteractions.allow_stitch?.enabled === false
+                              }
+                              onChange={(e) => setAllowStitch(e.target.checked)}
+                            />
+                            Allow stitches
+                          </label>
                           <label className="post-consent">
                             <input
                               type="checkbox"
