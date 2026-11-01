@@ -61,6 +61,9 @@ export function Studio() {
   const [postConsent, setPostConsent] = useState(false);
   const [postBusy, setPostBusy] = useState(false);
   const [postResult, setPostResult] = useState('');
+  const [publishStage, setPublishStage] = useState<
+    'idle' | 'uploading' | 'submitted' | 'posted' | 'failed'
+  >('idle');
   const xhr = useRef<XMLHttpRequest | null>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -240,6 +243,8 @@ export function Studio() {
   }
   async function publishToTikTok() {
     if (!id || !postAccount || !privacy || !postConsent) return;
+    setPublishStage('uploading');
+    setPostResult('');
     setPostBusy(true);
     setError('');
     try {
@@ -263,9 +268,17 @@ export function Studio() {
         }),
       });
       setPostResult(result.error || `TikTok posting status: ${result.status}.`);
+      setPublishStage(
+        result.error || result.status === 'failed'
+          ? 'failed'
+          : ['published', 'posted'].includes(result.status)
+            ? 'posted'
+            : 'submitted',
+      );
       setZernioKey('');
       setPostConsent(false);
     } catch (e) {
+      setPublishStage('failed');
       setError((e as Error).message);
     } finally {
       setPostBusy(false);
@@ -670,8 +683,53 @@ export function Studio() {
                             }
                             onClick={() => void publishToTikTok()}
                           >
-                            {postBusy ? 'POSTING…' : '♪ AUTO POST TO TIKTOK'}
+                            {publishStage === 'uploading'
+                              ? 'Posting…'
+                              : publishStage === 'posted'
+                                ? 'Posted!'
+                                : publishStage === 'submitted'
+                                  ? 'Submitted!'
+                                  : '♪ AUTO POST TO TIKTOK'}
                           </button>
+                          {publishStage !== 'idle' && (
+                            <div
+                              className="publish-progress"
+                              role="status"
+                              aria-live="polite"
+                            >
+                              <span>
+                                {publishStage === 'uploading'
+                                  ? 'Uploading and posting…'
+                                  : publishStage === 'posted'
+                                    ? 'Posted to TikTok'
+                                    : publishStage === 'submitted'
+                                      ? 'Sent to TikTok — awaiting confirmation'
+                                      : 'Posting needs attention'}
+                              </span>
+                              <div
+                                className={`publish-progress-track ${publishStage === 'uploading' ? 'is-publishing' : ''}`}
+                                role="progressbar"
+                                aria-label="TikTok publishing"
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={
+                                  publishStage === 'posted' ? 100 : undefined
+                                }
+                              >
+                                <div
+                                  className="publish-progress-fill"
+                                  style={{
+                                    width:
+                                      publishStage === 'posted'
+                                        ? '100%'
+                                        : publishStage === 'submitted'
+                                          ? '85%'
+                                          : '22%',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </>
                       )}
                       {zernioAccounts.length === 0 && zernioKey && (
