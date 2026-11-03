@@ -12,6 +12,7 @@ import {
 } from '../../../packages/shared/src/storage';
 import { TikQuick } from './providers/tikquick';
 import { inspectMedia } from './media';
+import { limitsFor } from '../../../packages/shared/src/plans';
 import { inspectProviderMedia } from './provider-media';
 import {
   claim,
@@ -109,6 +110,47 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
   try {
     await toFile(job.source_object_key, join(dir, 'source'), signal);
     const input = await inspectMedia(join(dir, 'source'), signal);
+    const billing = (
+      await db.query(
+        'select status,access_until,test_access_until from billing_accounts where user_id=$1',
+        [job.user_id],
+      )
+    ).rows[0];
+    const premium =
+      !!billing &&
+      ((['active', 'trialing'].includes(billing.status) &&
+        new Date(billing.access_until).getTime() > Date.now()) ||
+        new Date(billing.test_access_until).getTime() > Date.now());
+    const limits = limitsFor(premium);
+    if (limits.bytes !== null && Number(job.input_size_bytes) > limits.bytes)
+      throw new AppError(
+        'PLAN_LIMIT',
+        'Free videos must be 100 MB or smaller.',
+      );
+    for (const video of input.streams.filter((s) => s.codec_type === 'video')) {
+      const [numerator, denominator = '1'] = (
+        video.avg_frame_rate && video.avg_frame_rate !== '0/0'
+          ? video.avg_frame_rate
+          : video.r_frame_rate || '0/1'
+      ).split('/');
+      const fps = Number(numerator) / Number(denominator);
+      if (!Number.isFinite(fps) || fps <= 0)
+        throw new AppError(
+          'INVALID_MEDIA',
+          'The video frame rate could not be verified.',
+        );
+      if (
+        Math.min(video.width || 0, video.height || 0) > limits.shortEdge ||
+        Math.max(video.width || 0, video.height || 0) > limits.longEdge ||
+        fps > limits.fps + 0.01
+      )
+        throw new AppError(
+          'PLAN_LIMIT',
+          premium
+            ? 'Premium supports up to 4K at 120 FPS.'
+            : 'Free supports up to 1080p at 60 FPS. Upgrade to Premium for higher limits.',
+        );
+    }
     await updateJob(db, job.id, { input_metadata: input });
     const hooks = {
       signal,

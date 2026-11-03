@@ -1,30 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import {
-  AppError,
-  MAX_INPUT_BYTES,
-  uploadSchema,
-  idSchema,
-} from '@tikquick/shared';
+import { AppError, uploadSchema, idSchema } from '@tikquick/shared';
 import {
   presignUpload,
   sealUpload,
   downloadUrl,
 } from '../../../packages/shared/src/storage';
 import { transaction, ownJob, publicColumns } from './server';
-export const dailyQuota = () =>
-  Math.max(1, Number(process.env.DAILY_JOB_LIMIT || 10));
-export const inputLimit = () =>
-  Math.min(
-    1_500_000_000,
-    Number(process.env.MAX_INPUT_BYTES || MAX_INPUT_BYTES),
-  );
+import { entitlement } from './billing';
 export async function createUpload(request: Request, userId: string) {
   const data = uploadSchema.parse(await request.json());
-  if (data.size > inputLimit())
+  const limits = await entitlement(userId);
+  if (limits.bytes !== null && data.size > limits.bytes)
     throw new AppError(
       'FILE_TOO_LARGE',
-      'This video exceeds the configured upload limit.',
+      'Free videos must be 100 MB or smaller. Upgrade to Premium for larger uploads.',
     );
   return transaction(userId, async (db) => {
     await db.query(
@@ -33,7 +23,7 @@ export async function createUpload(request: Request, userId: string) {
     );
     const usage = await db.query(
       "insert into usage_counters(user_id,usage_date,submitted_jobs) values($1,(now() at time zone 'UTC')::date,1) on conflict(user_id,usage_date) do update set submitted_jobs=usage_counters.submitted_jobs+1 where usage_counters.submitted_jobs<$2 returning submitted_jobs",
-      [userId, dailyQuota()],
+      [userId, limits.daily ?? 2147483647],
     );
     if (!usage.rowCount)
       throw new AppError(
@@ -161,6 +151,7 @@ export async function listJobs(request: Request, userId: string) {
   });
 }
 export async function usage(_request: Request, userId: string) {
+  const limits = await entitlement(userId);
   return transaction(userId, async (db) => {
     const r = await db.query(
       "select submitted_jobs,completed_jobs,uploaded_bytes::float8,processed_bytes::float8 from usage_counters where user_id=$1 and usage_date=(now() at time zone 'UTC')::date",
@@ -173,8 +164,9 @@ export async function usage(_request: Request, userId: string) {
         uploaded_bytes: 0,
         processed_bytes: 0,
       }),
-      daily_limit: dailyQuota(),
-      max_input_bytes: inputLimit(),
+      daily_limit: limits.daily ?? 'Unlimited',
+      max_input_bytes: limits.bytes ?? Number.MAX_SAFE_INTEGER,
+      tier: limits.tier,
       resets_at: '00:00 UTC',
     };
   });

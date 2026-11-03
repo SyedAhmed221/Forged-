@@ -21,6 +21,7 @@ const navigation = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/optimize', label: 'Optimize video', icon: WandSparkles },
   { href: '/history', label: 'Video history', icon: History },
+  { href: '/subscription', label: 'Subscription', icon: ShieldCheck },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span>FORGE QUALITY</span>
           </Link>
           <nav aria-label="Homepage navigation">
+            <Link href="/subscription">Subscription</Link>
             <Link href="#workflow">How it works</Link>
             <Link href="/optimize">Optimize</Link>
             <Link href={email ? '/dashboard' : '/login'}>

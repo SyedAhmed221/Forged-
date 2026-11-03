@@ -20,7 +20,7 @@ import { Button } from './ui/button';
 type Usage = {
   submitted_jobs: number;
   completed_jobs: number;
-  daily_limit: number;
+  daily_limit: number | 'Unlimited';
   max_input_bytes: number;
   uploaded_bytes: number;
   processed_bytes: number;

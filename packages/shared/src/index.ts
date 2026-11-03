@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const MAX_INPUT_BYTES = 250 * 1024 * 1024;
+export const MAX_INPUT_BYTES = 100_000_000;
 export const ENCODER_MAX_BYTES = 1_500_000_000;
 export const statuses = [
   'uploading',
@@ -23,6 +23,8 @@ export type MediaMetadata = {
     width?: number;
     height?: number;
     sample_rate?: string;
+    avg_frame_rate?: string;
+    r_frame_rate?: string;
   }[];
 };
 export type Job = {
@@ -54,7 +56,7 @@ export const uploadSchema = z.object({
     .min(1)
     .max(180)
     .regex(/^[^/\\\x00-\x1f]+\.(mp4|mov)$/i, 'Choose an MP4 or MOV file'),
-  size: z.number().int().positive().max(ENCODER_MAX_BYTES),
+  size: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   use_encoder: z.boolean().default(false),
 });
 export const idSchema = z.uuid();

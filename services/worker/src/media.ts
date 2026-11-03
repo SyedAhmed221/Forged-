@@ -15,6 +15,8 @@ const probeSchema = z.object({
       width: z.number().optional(),
       height: z.number().optional(),
       sample_rate: z.string().optional(),
+      avg_frame_rate: z.string().optional(),
+      r_frame_rate: z.string().optional(),
     }),
   ),
 });
