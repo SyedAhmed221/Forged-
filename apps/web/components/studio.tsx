@@ -20,6 +20,7 @@ import {
   formatBytes,
   stages,
   MAX_INPUT_BYTES,
+  ENCODER_MAX_BYTES,
 } from '@tikquick/shared';
 import { api, authClient } from '../lib/client';
 import { Button } from './ui/button';
@@ -124,9 +125,13 @@ export function Studio() {
       setError('Choose a video that is not empty.');
       return;
     }
-    if (maxSize !== null && next.size > maxSize) {
+    const allowedSize =
+      maxSize === 300_000_000 && encoder ? ENCODER_MAX_BYTES : maxSize;
+    if (allowedSize !== null && next.size > allowedSize) {
       setError(
-        `Choose a video no larger than ${(maxSize / 1_000_000).toLocaleString()} MB.`,
+        maxSize === 300_000_000 && !encoder
+          ? 'This video exceeds 300 MB. Enable re-encoding below, then select the file again (up to 1500 MB).'
+          : `Choose a video no larger than ${((allowedSize || 0) / 1_000_000).toLocaleString()} MB.`,
       );
       return;
     }

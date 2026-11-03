@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { AppError, uploadSchema, idSchema } from '@tikquick/shared';
+import {
+  AppError,
+  uploadSchema,
+  idSchema,
+  ENCODER_MAX_BYTES,
+} from '@tikquick/shared';
 import {
   presignUpload,
   sealUpload,
@@ -11,10 +16,18 @@ import { entitlement } from './billing';
 export async function createUpload(request: Request, userId: string) {
   const data = uploadSchema.parse(await request.json());
   const limits = await entitlement(userId);
-  if (limits.bytes !== null && data.size > limits.bytes)
+  const allowedSize =
+    limits.tier === 'premium' && data.use_encoder
+      ? ENCODER_MAX_BYTES
+      : limits.bytes;
+  if (data.size > allowedSize)
     throw new AppError(
       'FILE_TOO_LARGE',
-      'Free videos must be 100 MB or smaller. Upgrade to Premium for larger uploads.',
+      limits.tier === 'free'
+        ? 'Free videos must be 70 MB or smaller.'
+        : data.use_encoder
+          ? 'Re-encoding supports source files up to 1500 MB.'
+          : 'Premium videos over 300 MB require re-encoding. Enable re-encoding and try again.',
     );
   return transaction(userId, async (db) => {
     await db.query(

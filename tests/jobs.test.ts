@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   seal: vi.fn(),
 }));
 vi.mock('../apps/web/lib/billing', () => ({
-  entitlement: vi.fn(async () => ({ tier: 'free', bytes: 100_000_000, daily: 3 })),
+  entitlement: vi.fn(async () => ({ tier: 'free', bytes: 70_000_000, daily: 1 })),
 }));
 vi.mock('../apps/web/lib/server', () => ({
   transaction: async (_user: string, fn: (db: unknown) => unknown) =>

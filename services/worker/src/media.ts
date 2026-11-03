@@ -1,8 +1,68 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { stat } from 'node:fs/promises';
 import { z } from 'zod';
 import { AppError, type MediaMetadata } from '@tikquick/shared';
 const exec = promisify(execFile);
+export async function compressToLimit(
+  source: string,
+  output: string,
+  duration: number,
+  limit: number,
+  signal: AbortSignal,
+) {
+  let bitrate = Math.floor((limit * 0.92 * 8) / duration - 128000);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (bitrate < 10000)
+      throw new AppError(
+        'ENCODING_LIMIT',
+        'This video is too long to compress within 300 MB. Please export a shorter video.',
+      );
+    await exec(
+      process.env.FFMPEG_PATH || 'ffmpeg',
+      [
+        '-y',
+        '-v',
+        'error',
+        '-protocol_whitelist',
+        'file,pipe',
+        '-i',
+        source,
+        '-map',
+        '0:v:0',
+        '-map',
+        '0:a:0?',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'fast',
+        '-b:v',
+        String(bitrate),
+        '-maxrate',
+        String(bitrate),
+        '-bufsize',
+        String(bitrate * 2),
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-movflags',
+        '+faststart',
+        output,
+      ],
+      { signal, timeout: 45 * 60 * 1000, maxBuffer: 1024 * 1024 },
+    );
+    const size = (await stat(output)).size;
+    if (size <= limit) return size;
+    bitrate = Math.floor(((bitrate * limit) / size) * 0.85);
+  }
+  throw new AppError(
+    'ENCODING_LIMIT',
+    'The video could not be compressed within 300 MB. Please export a smaller file.',
+  );
+}
 const probeSchema = z.object({
   format: z.object({
     format_name: z.string(),

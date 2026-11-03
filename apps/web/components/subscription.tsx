@@ -77,7 +77,7 @@ export function Subscription() {
             {tier === 'premium'
               ? 'Premium limits are active. You’re ready for your next upload.'
               : tier === 'free'
-                ? 'You have 3 uploads each day, with videos up to 100 MB at 1080p / 60 FPS.'
+                ? 'You have 1 upload each day, with videos up to 70 MB at 1080p / 60 FPS.'
                 : loading
                   ? 'Retrieving your account details.'
                   : 'Sign in to see your current plan and manage your subscription.'}
@@ -135,10 +135,10 @@ export function Subscription() {
             name: 'Free',
             description: 'A simple start for everyday uploads.',
             features: [
-              '100 MB per video',
+              '70 MB per video',
               '1080p maximum resolution',
               '60 FPS maximum frame rate',
-              '3 uploads per day',
+              '1 upload per day',
             ],
           },
           {
@@ -146,7 +146,7 @@ export function Subscription() {
             name: 'Premium',
             description: 'More room for your best work.',
             features: [
-              'No plan-based file-size limit',
+              '300 MB per video · re-encode larger files',
               '4K maximum resolution',
               '120 FPS maximum frame rate',
               'Unlimited uploads',

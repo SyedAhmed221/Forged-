@@ -12,15 +12,15 @@ export function limitsFor(premium: boolean) {
     ? {
         tier: 'premium' as const,
         daily: null,
-        bytes: null,
+        bytes: 300_000_000,
         shortEdge: 2160,
         longEdge: 3840,
         fps: 120,
       }
     : {
         tier: 'free' as const,
-        daily: 3,
-        bytes: 100_000_000,
+        daily: 1,
+        bytes: 70_000_000,
         shortEdge: 1080,
         longEdge: 1920,
         fps: 60,

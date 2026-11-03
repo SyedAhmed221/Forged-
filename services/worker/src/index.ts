@@ -4,14 +4,14 @@ import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createServer } from 'node:http';
 import { type PoolClient } from 'pg';
-import { AppError } from '@tikquick/shared';
+import { AppError, ENCODER_MAX_BYTES } from '@tikquick/shared';
 import {
   storeOutput,
   toFile,
   remove,
 } from '../../../packages/shared/src/storage';
 import { TikQuick } from './providers/tikquick';
-import { inspectMedia } from './media';
+import { inspectMedia, compressToLimit } from './media';
 import { limitsFor } from '../../../packages/shared/src/plans';
 import { inspectProviderMedia } from './provider-media';
 import {
@@ -122,10 +122,14 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
         new Date(billing.access_until).getTime() > Date.now()) ||
         new Date(billing.test_access_until).getTime() > Date.now());
     const limits = limitsFor(premium);
-    if (limits.bytes !== null && Number(job.input_size_bytes) > limits.bytes)
+    const allowedSize =
+      premium && job.use_encoder ? ENCODER_MAX_BYTES : limits.bytes;
+    if (Number(job.input_size_bytes) > allowedSize)
       throw new AppError(
         'PLAN_LIMIT',
-        'Free videos must be 100 MB or smaller.',
+        premium
+          ? 'Premium videos over 300 MB require re-encoding (source limit 1500 MB).'
+          : 'Free videos must be 70 MB or smaller.',
       );
     for (const video of input.streams.filter((s) => s.codec_type === 'video')) {
       const [numerator, denominator = '1'] = (
@@ -172,9 +176,26 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
       filename: job.filename,
       size: Number(job.input_size_bytes),
     };
-    const response = job.use_encoder
-      ? await provider.encoded(source, hooks)
-      : await provider.standard(source, hooks);
+    const oversized = premium && Number(job.input_size_bytes) > limits.bytes;
+    if (oversized) {
+      await updateJob(db, job.id, { provider_stage: 'encoding' });
+      const compressed = join(dir, 'compressed.mp4');
+      const size = await compressToLimit(
+        source.path,
+        compressed,
+        input.duration,
+        limits.bytes,
+        signal,
+      );
+      await inspectMedia(compressed, signal);
+      source.path = compressed;
+      source.size = size;
+      source.filename = 'compressed.mp4';
+    }
+    const response =
+      job.use_encoder && !oversized
+        ? await provider.encoded(source, hooks)
+        : await provider.standard(source, hooks);
     const bytes = await storeOutput(
       response,
       outputKey,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const MAX_INPUT_BYTES = 100_000_000;
+export const MAX_INPUT_BYTES = 70_000_000;
 export const ENCODER_MAX_BYTES = 1_500_000_000;
 export const statuses = [
   'uploading',
