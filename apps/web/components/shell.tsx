@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Flame,
   LayoutDashboard,
   WandSparkles,
   History,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { authClient } from '../lib/client';
 import { Button } from './ui/button';
+import { BrandLogo } from './brand-logo';
 const navigation = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/optimize', label: 'Optimize video', icon: WandSparkles },
@@ -42,10 +42,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className={`sidebar ${open ? 'is-open' : ''}`}>
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-mark">
-            <Flame size={25} />
-          </span>
-          forged<span className="brand-dot">.</span>
+          <BrandLogo />
         </Link>
         <div className="workspace">
           <span className="workspace-avatar">F</span>
@@ -113,6 +110,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="main-wrap">
         <header className="topbar">
+          <Link href="/" className="mobile-brand" aria-label="Forged home">
+            <BrandLogo />
+          </Link>
           <div className="breadcrumb">
             <button
               className="mobile-menu icon-button"
@@ -140,7 +140,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <main>{children}</main>
         <footer>
-          <span>© {new Date().getFullYear()} Forged Studio</span>
+          <span className="footer-brand">
+            <BrandLogo />© {new Date().getFullYear()} Forged Studio
+          </span>
           <span>
             Made for the final export.<span className="footer-dot">·</span>
             <Link href="/settings">Privacy</Link>

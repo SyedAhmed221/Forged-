@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandLogo } from '../components/brand-logo';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -22,6 +23,7 @@ export default function Home() {
       </div>
       <section className="hero">
         <div className="hero-copy">
+          <BrandLogo className="hero-brand" />
           <span className="tag">
             <span /> BUILT FOR CREATORS
           </span>

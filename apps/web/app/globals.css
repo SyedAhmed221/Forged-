@@ -2270,3 +2270,68 @@ td {
     animation: none;
   }
 }
+.brand-logo {
+  display: block;
+  position: relative;
+  width: 190px;
+  height: 116px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #000;
+}
+.brand-logo img {
+  position: absolute;
+  width: 100%;
+  height: auto;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.brand .brand-logo {
+  width: 190px;
+}
+.hero-brand {
+  width: 220px;
+  height: 140px;
+  margin-bottom: 24px;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.footer-brand .brand-logo {
+  width: 70px;
+  height: 44px;
+}
+.mobile-brand {
+  display: none;
+}
+@media (max-width: 640px) {
+  .topbar-right {
+    display: none;
+  }
+  .topbar .breadcrumb {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .footer-brand {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mobile-brand {
+    display: block;
+  }
+  .mobile-brand .brand-logo {
+    width: 82px;
+    height: 50px;
+  }
+  .topbar {
+    gap: 12px;
+  }
+  .hero-brand {
+    width: 180px;
+    height: 112px;
+  }
+}
