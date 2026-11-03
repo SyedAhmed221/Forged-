@@ -40,7 +40,7 @@ export function Studio() {
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
   const [id, setId] = useState<string>();
-  const [maxSize, setMaxSize] = useState(MAX_INPUT_BYTES);
+  const [maxSize, setMaxSize] = useState<number | null>(MAX_INPUT_BYTES);
   const [signedIn, setSignedIn] = useState(false);
   const [zernioKey, setZernioKey] = useState('');
   const [zernioAccounts, setZernioAccounts] = useState<
@@ -74,7 +74,7 @@ export function Studio() {
       void auth.auth.getSession().then(({ data }) => {
         setSignedIn(!!data.session);
         if (data.session)
-          void api<{ max_input_bytes: number }>('/api/usage')
+          void api<{ max_input_bytes: number | null }>('/api/usage')
             .then((u) => setMaxSize(u.max_input_bytes))
             .catch(() => {});
       });
@@ -120,8 +120,14 @@ export function Studio() {
       setError('Choose an MP4 or MOV video.');
       return;
     }
-    if (next.size > maxSize || next.size === 0) {
-      setError(`Choose a video smaller than ${formatBytes(maxSize)}.`);
+    if (next.size === 0) {
+      setError('Choose a video that is not empty.');
+      return;
+    }
+    if (maxSize !== null && next.size > maxSize) {
+      setError(
+        `Choose a video no larger than ${(maxSize / 1_000_000).toLocaleString()} MB.`,
+      );
       return;
     }
     setMetadata({ width: 0, height: 0, duration: 0 });
@@ -399,7 +405,10 @@ export function Studio() {
                     Drag your video here, or <span>browse files</span>
                   </p>
                   <div className="drop-hint">
-                    MP4 or MOV <span>·</span> Up to {formatBytes(maxSize)}
+                    MP4 or MOV <span>·</span>{' '}
+                    {maxSize === null
+                      ? 'No file-size limit'
+                      : `Up to ${(maxSize / 1_000_000).toLocaleString()} MB`}
                   </div>
                 </div>
               )}

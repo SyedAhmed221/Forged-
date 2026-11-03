@@ -165,7 +165,7 @@ export async function usage(_request: Request, userId: string) {
         processed_bytes: 0,
       }),
       daily_limit: limits.daily ?? 'Unlimited',
-      max_input_bytes: limits.bytes ?? Number.MAX_SAFE_INTEGER,
+      max_input_bytes: limits.bytes,
       tier: limits.tier,
       resets_at: '00:00 UTC',
     };

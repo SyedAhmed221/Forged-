@@ -21,7 +21,7 @@ type Usage = {
   submitted_jobs: number;
   completed_jobs: number;
   daily_limit: number | 'Unlimited';
-  max_input_bytes: number;
+  max_input_bytes: number | null;
   uploaded_bytes: number;
   processed_bytes: number;
   resets_at: string;
