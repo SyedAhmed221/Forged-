@@ -64,7 +64,7 @@ export const stages: Record<string, string> = {
   queued: 'Waiting for a worker',
   preparing: 'Preparing video',
   connecting: 'Connecting to patcher',
-  sending: 'Sending video to TikQuick',
+  sending: 'Sending video for optimization',
   encoding: 'Preparing video with encoder',
   patching: 'Patching video',
   receiving: 'Receiving output',

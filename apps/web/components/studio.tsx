@@ -518,7 +518,14 @@ export function Studio() {
                       ? 'Processing cancelled'
                       : stages[job.provider_stage || job.status] || job.status}
                 </h3>
-                {job.error_message && <p>{job.error_message}</p>}
+                {job.error_message && (
+                  <p>
+                    {job.error_message.replace(
+                      /TikQuick/gi,
+                      'The processing service',
+                    )}
+                  </p>
+                )}
                 {job.progress.uploaded_bytes !== undefined &&
                   job.progress.total_bytes && (
                     <>
@@ -550,9 +557,9 @@ export function Studio() {
                     </Button>
                     {job.output_metadata?.validation === 'tikquick_content' && (
                       <p>
-                        Video content verified. Download the original TikQuick
-                        patch for upload to TikTok. Its special timing samples
-                        may prevent playback in ordinary video players.
+                        Video content verified. Download your optimized video
+                        for upload to TikTok. Its special timing samples may
+                        prevent playback in ordinary video players.
                       </p>
                     )}
                     <div className="auto-post-panel">
@@ -801,7 +808,7 @@ export function Studio() {
                 <div>
                   <strong>Let us do the prep</strong>
                   <p>
-                    TikQuick processes your video. Follow each stage right here.
+                    Your video is being optimized. Follow each stage right here.
                   </p>
                 </div>
               </li>

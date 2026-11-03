@@ -512,9 +512,9 @@ export function Settings() {
           <div>
             <strong>Third-party processing</strong>
             <p>
-              TikQuick receives your video to process it. Forged can delete its
-              own stored copies; TikQuick controls retention of copies on its
-              servers.
+              Our processing provider receives your video for optimization.
+              Forged can delete its own stored copies; the provider controls
+              retention of copies on its servers.
             </p>
           </div>
         </div>

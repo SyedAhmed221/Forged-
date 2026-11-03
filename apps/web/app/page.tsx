@@ -148,7 +148,7 @@ export default function Home() {
           {
             icon: SlidersHorizontal,
             title: 'Give it a final pass',
-            copy: 'Run TikQuick processing, with optional preprocessing for an uncompressed export.',
+            copy: 'Optimize your video, with optional preprocessing for an uncompressed export.',
           },
           {
             icon: Download,
