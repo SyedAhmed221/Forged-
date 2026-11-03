@@ -553,11 +553,81 @@ export function Studio() {
                 {job.status === 'completed' && (
                   <>
                     <Button onClick={() => action('download')}>
-                      <Download size={17} /> Download video
+                      <Download size={17} /> Download optimised video
                     </Button>
+                    <div className="optimised-details">
+                      <div className="optimised-details-heading">
+                        <Check size={17} />
+                        <strong>Optimisation complete</strong>
+                      </div>
+                      <p className="optimised-filename">{job.filename}</p>
+                      <dl className="video-specs">
+                        <div>
+                          <dt>Optimised file size</dt>
+                          <dd>
+                            {job.output_size_bytes
+                              ? formatBytes(job.output_size_bytes)
+                              : 'Not available'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Resolution</dt>
+                          <dd>
+                            {(() => {
+                              const video = job.output_metadata?.streams.find(
+                                (s) => s.codec_type === 'video',
+                              );
+                              return video?.width && video.height
+                                ? `${video.width} × ${video.height}`
+                                : 'Not available';
+                            })()}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Video codec</dt>
+                          <dd>
+                            {job.output_metadata?.streams
+                              .find((s) => s.codec_type === 'video')
+                              ?.codec_name?.toUpperCase() || 'Not available'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Duration</dt>
+                          <dd>
+                            {(() => {
+                              const duration =
+                                (job.output_metadata?.validation ===
+                                'tikquick_content'
+                                  ? job.input_metadata?.duration
+                                  : job.output_metadata?.duration) ??
+                                job.input_metadata?.duration;
+                              return duration && Number.isFinite(duration)
+                                ? `${Math.floor(duration / 60)}m ${Math.round(duration % 60)}s`
+                                : 'Not available';
+                            })()}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Audio</dt>
+                          <dd>
+                            {job.output_metadata?.streams
+                              .find((s) => s.codec_type === 'audio')
+                              ?.codec_name?.toUpperCase() || 'No audio track'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Processing mode</dt>
+                          <dd>
+                            {job.use_encoder
+                              ? 'Re-encoded and optimised'
+                              : 'Optimised without re-encoding'}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
                     {job.output_metadata?.validation === 'tikquick_content' && (
                       <p>
-                        Video content verified. Download your optimized video
+                        Video content verified. Download your optimised video
                         for upload to TikTok. Its special timing samples may
                         prevent playback in ordinary video players.
                       </p>
@@ -750,7 +820,8 @@ export function Studio() {
                 )}
                 {['queued', 'processing'].includes(job.status) && (
                   <Button
-                    variant="ghost"
+                    variant="secondary"
+                    className="cancel-processing-button"
                     onClick={() => action('cancel')}
                     disabled={job.cancel_requested}
                   >

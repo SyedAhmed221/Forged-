@@ -69,7 +69,7 @@ test('client can sign in, upload, process, download and delete a video', async (
   ).toBe('completed');
   const downloadEvent = page.waitForEvent('download');
   await page
-    .getByRole('button', { name: 'Download video', exact: true })
+    .getByRole('button', { name: 'Download optimised video', exact: true })
     .click();
   const download = await downloadEvent;
   expect(await download.failure()).toBeNull();
