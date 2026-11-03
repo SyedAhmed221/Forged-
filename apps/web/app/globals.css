@@ -1445,11 +1445,15 @@ td {
   background: currentColor;
 }
 .badge-completed {
-  color: #c7c7c7;
-  background: #2c2c2c;
-  border-color: #464646;
+  color: #86efac;
+  background: #10251a;
+  border-color: #2d6b45;
 }
-.badge-failed,
+.badge-failed {
+  color: #fca5a5;
+  background: #2b1115;
+  border-color: #7f1d2d;
+}
 .badge-cancelled {
   background: #35282b;
   color: #d8a7ac;
