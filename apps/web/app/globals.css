@@ -3,7 +3,7 @@
   --color-background: #0e0e0e;
   --color-foreground: #efefef;
   --color-primary: #cacaca;
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: var(--font-barlow), Arial, Helvetica, sans-serif;
 }
 :root {
   color-scheme: dark;
@@ -21,7 +21,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-barlow), Arial, Helvetica, sans-serif;
   font-size: 17px;
   -webkit-font-smoothing: antialiased;
 }
@@ -63,8 +63,9 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 h2 {
   font-size: 24px;
@@ -164,6 +165,7 @@ svg {
   color: var(--muted);
 }
 .nav-label {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   font-size: 12px;
   letter-spacing: 1.6px;
   color: #707070;
@@ -294,6 +296,7 @@ svg {
   gap: 28px;
 }
 .status-chip {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   font-size: 12px;
   letter-spacing: 1px;
   display: flex;
@@ -328,9 +331,10 @@ main {
   padding: 48px 48px 25px;
 }
 .eyebrow {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   font-size: 12px;
   letter-spacing: 1.75px;
-  font-weight: 500;
+  font-weight: 400;
   color: #9b9b9b;
   display: flex;
   align-items: center;
@@ -352,6 +356,7 @@ main {
   padding: 32px 0 45px;
 }
 .tag {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -366,7 +371,7 @@ main {
 .hero h1 {
   font-size: clamp(43px, 4.4vw, 68px);
   line-height: 1.07;
-  letter-spacing: -3.6px;
+  letter-spacing: -0.035em;
   margin: 23px 0;
 }
 .hero h1 > span {
@@ -823,6 +828,7 @@ footer {
   font-size: 15px;
 }
 .outlined-chip {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   border: 1px solid #3a3a3a;
   padding: 9px 11px;
   display: flex;
@@ -1250,6 +1256,7 @@ progress::-webkit-progress-value {
   flex-shrink: 0;
 }
 .job-file h3 {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
   font-size: 18px;
   overflow-wrap: anywhere;
 }
@@ -1416,6 +1423,7 @@ td {
   color: #b0b0b0;
 }
 .video-cell > div {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1427,6 +1435,7 @@ td {
   margin-top: 7px;
 }
 .job-badge {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2345,12 +2354,12 @@ body {
 }
 h1,
 h2 {
-  font-weight: 500;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.015em;
 }
 .hero h1 {
-  font-size: clamp(38px, 4.6vw, 66px);
+  font-size: clamp(36px, 3.4vw, 48px);
   line-height: 1.07;
   font-weight: 400;
   letter-spacing: -0.025em;
@@ -2456,6 +2465,7 @@ input[type='range'] {
   border-bottom: 1px solid #222329;
 }
 .marketing-brand {
+  font-family: var(--font-michroma), Arial, Helvetica, sans-serif;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2523,7 +2533,7 @@ input[type='range'] {
     margin: 32px 18px 0;
   }
   .hero h1 {
-    font-size: clamp(36px, 9vw, 48px);
+    font-size: clamp(25px, 7vw, 30px);
   }
 }
 .hero-art {
@@ -2557,6 +2567,7 @@ input[type='range'] {
   color: #eef0f6;
 }
 .optimised-filename {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
   margin-top: 10px;
   overflow-wrap: anywhere;
   font-size: 14px;
@@ -2573,6 +2584,7 @@ input[type='range'] {
   margin-bottom: 5px;
 }
 .video-specs dd {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
   margin: 0;
   color: #f2f3f7;
   font-size: 15px;

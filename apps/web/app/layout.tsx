@@ -1,6 +1,28 @@
 import type { Metadata } from 'next';
+import { Barlow, JetBrains_Mono, Michroma } from 'next/font/google';
 import './globals.css';
 import { Shell } from '../components/shell';
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-barlow',
+});
+
+const michroma = Michroma({
+  subsets: ['latin'],
+  weight: '400',
+  display: 'swap',
+  variable: '--font-michroma',
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jetbrains-mono',
+});
+
 export const metadata: Metadata = {
   title: {
     default: 'Forged — Your video, ready for what’s next.',
@@ -15,7 +37,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${barlow.variable} ${michroma.variable} ${jetBrainsMono.variable}`}
+    >
       <body>
         <Shell>{children}</Shell>
       </body>
