@@ -38,6 +38,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
     return () => data.subscription.unsubscribe();
   }, []);
+  if (path === '/') {
+    return (
+      <div className="marketing-shell">
+        <header className="marketing-header">
+          <Link href="/" className="marketing-brand" aria-label="Forged home">
+            <BrandLogo />
+            <span>FORGED</span>
+          </Link>
+          <nav aria-label="Homepage navigation">
+            <Link href="#workflow">How it works</Link>
+            <Link href="/optimize">Optimize</Link>
+            <Link href={email ? '/dashboard' : '/login'}>
+              {email ? 'My workspace' : 'Sign in'}
+            </Link>
+          </nav>
+          <Button asChild>
+            <Link href="/optimize">
+              Get started <ArrowUpRight size={16} />
+            </Link>
+          </Button>
+        </header>
+        <main>{children}</main>
+        <footer className="marketing-footer">
+          <span className="footer-brand">
+            <BrandLogo />© {new Date().getFullYear()} Forged Studio
+          </span>
+          <Link href="/settings">Privacy & storage</Link>
+        </footer>
+      </div>
+    );
+  }
   return (
     <div className="app-shell">
       <aside className={`sidebar ${open ? 'is-open' : ''}`}>

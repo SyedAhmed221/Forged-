@@ -129,7 +129,7 @@ export default function Home() {
           <p>Short-lived links. Automatic cleanup.</p>
         </div>
       </div>
-      <section className="how-section">
+      <section className="how-section" id="workflow">
         <div>
           <div className="eyebrow">LESS FRICTION. MORE CREATING.</div>
           <h2>Three steps. Then it’s yours.</h2>
