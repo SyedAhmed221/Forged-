@@ -2291,11 +2291,6 @@ td {
 .brand .brand-logo {
   width: 190px;
 }
-.hero-brand {
-  width: 220px;
-  height: 140px;
-  margin-bottom: 24px;
-}
 .footer-brand {
   display: flex;
   align-items: center;
@@ -2329,9 +2324,5 @@ td {
   }
   .topbar {
     gap: 12px;
-  }
-  .hero-brand {
-    width: 180px;
-    height: 112px;
   }
 }
