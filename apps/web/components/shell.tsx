@@ -42,9 +42,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return (
       <div className="marketing-shell">
         <header className="marketing-header">
-          <Link href="/" className="marketing-brand" aria-label="Forged home">
+          <Link href="/" className="marketing-brand" aria-label="Forge Quality home">
             <BrandLogo />
-            <span>FORGED</span>
+            <span>FORGE QUALITY</span>
           </Link>
           <nav aria-label="Homepage navigation">
             <Link href="#workflow">How it works</Link>
@@ -183,3 +183,4 @@ export function Shell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
