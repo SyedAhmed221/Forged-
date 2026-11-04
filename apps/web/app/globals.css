@@ -144,6 +144,73 @@ svg {
   padding: 12px 10px;
   font-size: 14px;
 }
+.workspace-menu {
+  position: relative;
+}
+.workspace-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+.workspace-menu summary::-webkit-details-marker {
+  display: none;
+}
+.workspace-menu summary:hover {
+  border-color: #676c79;
+  background: #16181e;
+}
+.workspace-menu summary:focus-visible {
+  outline: 2px solid #d6d9e5;
+  outline-offset: 3px;
+}
+.workspace-menu[open] summary > svg {
+  transform: rotate(90deg);
+}
+.workspace-name {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-menu .workspace {
+  width: 100%;
+  text-align: left;
+}
+.workspace-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  padding: 8px;
+  border: 1px solid #424651;
+  border-radius: 9px;
+  background: #111318;
+  box-shadow: 0 14px 35px #0009;
+}
+.workspace-menu-email {
+  padding: 8px 10px 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid #30333b;
+  margin-bottom: 5px;
+}
+.workspace-dropdown a,
+.workspace-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #d6d9e2;
+  font-size: 14px;
+  text-align: left;
+}
+.workspace-dropdown a:hover,
+.workspace-dropdown button:hover {
+  background: #292d37;
+  color: #fff;
+}
 .workspace-avatar {
   background: #2c2c2c;
   color: #d7d7d7;

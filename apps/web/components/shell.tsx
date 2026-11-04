@@ -43,7 +43,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return (
       <div className="marketing-shell">
         <header className="marketing-header">
-          <Link href="/" className="marketing-brand" aria-label="Forge Quality home">
+          <Link
+            href="/"
+            className="marketing-brand"
+            aria-label="Forge Quality home"
+          >
             <BrandLogo />
             <span>FORGE QUALITY</span>
           </Link>
@@ -77,13 +81,47 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <BrandLogo />
         </Link>
-        <div className="workspace">
-          <span className="workspace-avatar">F</span>
-          <div>
-            Personal workspace<small>Creator account</small>
+        <details className="workspace-menu" key={path}>
+          <summary className="workspace">
+            <span className="workspace-avatar">
+              {email?.[0].toUpperCase() || 'F'}
+            </span>
+            <span className="workspace-name">
+              Personal workspace
+              <small>
+                {email ? 'Account & membership' : 'Sign in to your account'}
+              </small>
+            </span>
+            <ChevronRight size={14} />
+          </summary>
+          <div className="workspace-dropdown">
+            {email && <p className="workspace-menu-email">{email}</p>}
+            <Link href="/dashboard" onClick={() => setOpen(false)}>
+              <LayoutDashboard size={16} /> Workspace overview
+            </Link>
+            <Link href="/subscription" onClick={() => setOpen(false)}>
+              <ShieldCheck size={16} /> Plan & billing
+            </Link>
+            <Link href="/settings" onClick={() => setOpen(false)}>
+              <Settings size={16} /> Account settings
+            </Link>
+            {email ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  await authClient()?.auth.signOut();
+                  window.location.href = '/';
+                }}
+              >
+                <LogOut size={16} /> Sign out
+              </button>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)}>
+                <ArrowUpRight size={16} /> Sign in
+              </Link>
+            )}
           </div>
-          <ChevronRight size={14} />
-        </div>
+        </details>
         <p className="nav-label">WORKSPACE</p>
         <nav aria-label="Main navigation">
           {navigation.map((item) => (
@@ -185,4 +223,3 @@ export function Shell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
