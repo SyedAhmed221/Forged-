@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { stripe } from '../../../../lib/billing';
+import { stripe, liveBilling } from '../../../../lib/billing';
 import { transaction } from '../../../../lib/server';
 
 export const runtime = 'nodejs';
@@ -38,8 +38,11 @@ export async function POST(request: Request) {
     );
   try {
     const event = JSON.parse(raw);
-    if (event.livemode !== false)
-      return Response.json({ error: 'Test events required.' }, { status: 400 });
+    if (event.livemode !== liveBilling())
+      return Response.json(
+        { error: 'Payment environment mismatch.' },
+        { status: 400 },
+      );
     if (
       ![
         'customer.subscription.created',

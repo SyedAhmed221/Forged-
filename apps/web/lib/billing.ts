@@ -12,10 +12,10 @@ export async function stripe(
   idempotency?: string,
 ) {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key?.startsWith('sk_test_'))
+  if (!key || !/^sk_(test|live)_/.test(key))
     throw new AppError(
       'BILLING_UNAVAILABLE',
-      'Test billing is not configured.',
+      'Billing is not configured.',
       503,
     );
   const response = await fetch(`https://api.stripe.com/v1/${path}`, {
@@ -38,6 +38,9 @@ export async function stripe(
       503,
     );
   return response.json();
+}
+export function liveBilling() {
+  return process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') === true;
 }
 
 export async function entitlement(userId: string) {

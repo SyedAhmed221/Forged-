@@ -8,7 +8,10 @@ vi.mock('../apps/web/lib/server', () => ({
   transaction: (_id: string, fn: (db: unknown) => unknown) =>
     fn({ query: mocks.query }),
 }));
-vi.mock('../apps/web/lib/billing', () => ({ stripe: mocks.stripe }));
+vi.mock('../apps/web/lib/billing', () => ({
+  stripe: mocks.stripe,
+  liveBilling: () => false,
+}));
 import { POST } from '../apps/web/app/api/billing/webhook/route';
 afterEach(() => {
   vi.unstubAllEnvs();

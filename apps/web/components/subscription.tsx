@@ -12,7 +12,7 @@ import {
   LoaderCircle,
 } from 'lucide-react';
 
-export function Subscription() {
+export function Subscription({ live = false }: { live?: boolean }) {
   const [tier, setTier] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -236,7 +236,9 @@ export function Subscription() {
           Secure checkout with Stripe · All prices in GBP · Renews automatically
           until cancelled.
           <br />
-          Sandbox payments are enabled during testing. No real payment is taken.
+          {live
+            ? 'Your subscription starts after payment confirmation. Cancel anytime through Manage billing.'
+            : 'Sandbox payments are enabled during testing. No real payment is taken.'}
         </p>
       </div>
     </>

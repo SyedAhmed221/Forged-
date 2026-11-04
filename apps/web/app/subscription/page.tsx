@@ -10,7 +10,9 @@ export default function SubscriptionPage() {
           <p>Choose the limits that fit your workflow.</p>
         </div>
       </div>
-      <Subscription />
+      <Subscription
+        live={process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') === true}
+      />
     </div>
   );
 }
