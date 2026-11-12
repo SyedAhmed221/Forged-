@@ -1,5 +1,5 @@
 export const premiumPlans = {
-  monthly: { label: '1 month', amount: 100, months: 1 },
+  monthly: { label: '1 month', amount: 900, months: 1 },
   quarterly: { label: '3 months', amount: 2400, months: 3 },
   halfYearly: { label: '6 months', amount: 4600, months: 6 },
   yearly: { label: '1 year', amount: 8000, months: 12 },
