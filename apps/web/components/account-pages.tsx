@@ -311,11 +311,31 @@ export function Library({ overview = false }: { overview?: boolean }) {
   );
 }
 export function Login() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'recovery'>(
+    'signin',
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    if (params.has('error_code')) {
+      setMessage('This link is invalid or expired. Request a new reset link.');
+    }
+    const listener = authClient()?.auth.onAuthStateChange((event, session) => {
+      if (
+        event === 'PASSWORD_RECOVERY' &&
+        session &&
+        params.get('type') === 'recovery'
+      ) {
+        setMode('recovery');
+        setPassword('');
+        setMessage('');
+      }
+    });
+    return () => listener?.data.subscription.unsubscribe();
+  }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -326,6 +346,25 @@ export function Login() {
         throw new Error(
           'Sign-in will be available when Supabase is configured.',
         );
+      if (mode === 'forgot') {
+        const { error } = await auth.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin + '/login',
+        });
+        if (error && error.code !== 'user_not_found')
+          throw new Error(
+            'Could not request a reset link. Please try again later.',
+          );
+        setMessage(
+          'If an account exists for that email, check your inbox for a reset link.',
+        );
+        return;
+      }
+      if (mode === 'recovery') {
+        const { error } = await auth.auth.updateUser({ password });
+        if (error) throw error;
+        window.location.assign('/optimize');
+        return;
+      }
       const result =
         mode === 'signup'
           ? await auth.auth.signUp({
@@ -356,46 +395,64 @@ export function Login() {
         <h1>
           {mode === 'signin'
             ? 'Welcome back.'
-            : 'Make room for your next idea.'}
+            : mode === 'signup'
+              ? 'Make room for your next idea.'
+              : mode === 'forgot'
+                ? 'Reset your password'
+                : 'Choose a new password'}
         </h1>
         <p>
           {mode === 'signin'
             ? 'Sign in and give your next export a strong finish.'
-            : 'Create an account to securely upload and optimize videos.'}
+            : mode === 'signup'
+              ? 'Create an account to securely upload and optimize videos.'
+              : mode === 'forgot'
+                ? 'Enter the email address for your Forged account.'
+                : 'Use at least 8 characters.'}
         </p>
         <form onSubmit={submit}>
-          <label>
-            Email address
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              minLength={8}
-              autoComplete={
-                mode === 'signup' ? 'new-password' : 'current-password'
-              }
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-            />
-          </label>
+          {mode !== 'recovery' && (
+            <label>
+              Email address
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </label>
+          )}
+          {mode !== 'forgot' && (
+            <label>
+              {mode === 'recovery' ? 'New password' : 'Password'}
+              <input
+                type="password"
+                minLength={8}
+                autoComplete={
+                  mode === 'signin' ? 'current-password' : 'new-password'
+                }
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+              />
+            </label>
+          )}
           <Button disabled={busy} type="submit">
             {busy ? (
               <LoaderCircle className="spin" size={17} />
             ) : (
               <Mail size={17} />
             )}{' '}
-            {mode === 'signup' ? 'Create account' : 'Sign in'}
+            {mode === 'signup'
+              ? 'Create account'
+              : mode === 'forgot'
+                ? 'Send reset link'
+                : mode === 'recovery'
+                  ? 'Save new password'
+                  : 'Sign in'}
             <ArrowRight size={16} />
           </Button>
         </form>
@@ -404,17 +461,40 @@ export function Login() {
             {message}
           </p>
         )}
-        <div className="auth-switch">
-          {mode === 'signin' ? 'New to Forged?' : 'Already have an account?'}{' '}
-          <button
-            onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin');
-              setMessage('');
-            }}
-          >
-            {mode === 'signin' ? 'Create an account' : 'Sign in'}
-          </button>
-        </div>
+        {mode === 'signin' && (
+          <div className="auth-switch">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMode('forgot');
+                setPassword('');
+                setMessage('');
+              }}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+        {mode !== 'recovery' && (
+          <div className="auth-switch">
+            {mode === 'signin'
+              ? 'New to Forged?'
+              : mode === 'signup'
+                ? 'Already have an account?'
+                : ''}{' '}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin');
+                setMessage('');
+              }}
+            >
+              {mode === 'signin' ? 'Create an account' : 'Sign in'}
+            </button>
+          </div>
+        )}
         <div className="auth-footnote">
           <ShieldCheck size={14} /> No TikTok account connection required.
         </div>
