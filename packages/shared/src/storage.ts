@@ -77,12 +77,18 @@ export async function remove(key: string) {
   await storage().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }
 export async function downloadUrl(key: string, filename: string) {
+  const stem = filename.replace(/\.(mp4|mov)$/i, '');
+  const outputName = `${stem}_ForgedQuality.mp4`;
+  const encodedName = encodeURIComponent(outputName).replace(
+    /['()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
   return getSignedUrl(
     storage(),
     new GetObjectCommand({
       Bucket: bucket(),
       Key: key,
-      ResponseContentDisposition: `attachment; filename="optimized.mp4"; filename*=UTF-8''${encodeURIComponent(filename.replace(/\.[^.]+$/, '.mp4'))}`,
+      ResponseContentDisposition: `attachment; filename="optimized_ForgedQuality.mp4"; filename*=UTF-8''${encodedName}`,
     }),
     { expiresIn: 60 },
   );
@@ -101,6 +107,7 @@ export async function storeOutput(
   key: string,
   signal: AbortSignal,
   progress: (bytes: number) => Promise<void>,
+  writeLocal?: (chunk: Buffer) => Promise<void>,
 ) {
   if (!response.body)
     throw new AppError(
@@ -123,17 +130,23 @@ export async function storeOutput(
   };
   arm();
   const meter = new Transform({
-    transform(chunk: Buffer, _encoding, callback) {
+    async transform(chunk: Buffer, _encoding, callback) {
       arm();
       bytes += chunk.length;
       if (bytes > max) return callback(new Error('Output size limit exceeded'));
-      if (Date.now() - last > 1000) {
-        last = Date.now();
-        progress(bytes).then(
-          () => callback(null, chunk),
-          () => callback(new Error('Lost worker lease')),
-        );
-      } else callback(null, chunk);
+      try {
+        if (writeLocal) await writeLocal(chunk);
+        if (Date.now() - last > 1000) {
+          last = Date.now();
+          await progress(bytes).catch(() => {
+            throw new Error('Lost worker lease');
+          });
+        }
+      } catch (error) {
+        callback(error as Error);
+        return;
+      }
+      callback(null, chunk);
     },
   });
   const upload = new Upload({

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AppError, byteRanges, ENCODER_MAX_BYTES } from '@tikquick/shared';
 
 const hosts = {
-  passport: ['tikquick.online'],
+  passport: ['tikquick.online', 'api.tikqcapi.site'],
   ps: ['byte.tikqcapi.site', 'ps.tikquick.online', 'tqps.mikeden.site'],
   encoder: ['encoder.tikquick.online', 'vapi.tikqcapi.site'],
 };
@@ -164,7 +164,7 @@ export class TikQuick {
   private retryBase: number;
   constructor(private config: Config) {
     this.passport = approvedBase(
-      config.passport || 'https://tikquick.online',
+      config.passport || 'https://api.tikqcapi.site',
       'passport',
     );
     this.ps = approvedBase(config.ps || 'https://byte.tikqcapi.site', 'ps');
@@ -248,6 +248,7 @@ export class TikQuick {
     size: number,
     total: number,
     h: Hooks,
+    method: 'orion' | 'luna' = 'orion',
   ): Promise<Session> {
     await h.progress({ stage: 'connecting' });
     const token = parseOTU(
@@ -263,7 +264,11 @@ export class TikQuick {
       await this.json(
         this.ps,
         '/api/upload/init',
-        { auth_userid: token.user_id, auth_token: token.token },
+        {
+          auth_userid: token.user_id,
+          auth_token: token.token,
+          selectmethod: method,
+        },
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -391,12 +396,13 @@ export class TikQuick {
     await h.progress({ stage: 'receiving' });
     return response;
   }
-  async standard(source: Source, h: Hooks) {
+  async standard(source: Source, h: Hooks, method: 'orion' | 'luna' = 'orion') {
     const session = await this.init(
       source.filename,
       source.size,
       Math.ceil(source.size / this.chunkBytes),
       h,
+      method,
     );
     await this.chunks(
       source,
@@ -409,7 +415,7 @@ export class TikQuick {
     );
     return this.complete(session, h);
   }
-  async encoded(source: Source, h: Hooks) {
+  async encoded(source: Source, h: Hooks, method: 'orion' | 'luna' = 'orion') {
     if (source.size > ENCODER_MAX_BYTES)
       throw new AppError(
         'ENCODER_LIMIT',
@@ -519,7 +525,7 @@ export class TikQuick {
       }
     }
     if (!encId) throw new ProviderError('ENCODER_PROGRESS_LOST');
-    const session = await this.init(`${encId}.mp4`, 1, 1, h);
+    const session = await this.init(`${encId}.mp4`, 1, 1, h, method);
     return this.complete(session, h, encId);
   }
 }

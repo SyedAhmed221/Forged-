@@ -75,12 +75,38 @@ const probeSchema = z.object({
       width: z.number().optional(),
       height: z.number().optional(),
       sample_rate: z.string().optional(),
+      channels: z.number().int().positive().optional(),
       avg_frame_rate: z.string().optional(),
       r_frame_rate: z.string().optional(),
     }),
   ),
 });
-export function validateProbe(value: unknown): MediaMetadata {
+export function validateProbe(
+  value: unknown,
+  providerHeader = false,
+): MediaMetadata {
+  if (providerHeader && value && typeof value === 'object') {
+    const raw = value as {
+      format?: { duration?: unknown };
+      streams?: {
+        codec_type?: string;
+        codec_name?: string;
+        duration?: unknown;
+      }[];
+    };
+    const duration = Number(raw.format?.duration);
+    const video = raw.streams?.find((s) => s.codec_type === 'video');
+    const trackDuration = Number(video?.duration);
+    if (
+      duration < 0 &&
+      duration >= -0.001 &&
+      video?.codec_name === 'h264' &&
+      Number.isFinite(trackDuration) &&
+      trackDuration > 0
+    ) {
+      value = { ...raw, format: { ...raw.format, duration: trackDuration } };
+    }
+  }
   const parsed = probeSchema.safeParse(value);
   if (
     !parsed.success ||
@@ -106,6 +132,7 @@ export async function inspectMedia(
   path: string,
   signal: AbortSignal,
   fullDecode = false,
+  providerHeader = false,
 ) {
   try {
     const result = await exec(
@@ -123,28 +150,58 @@ export async function inspectMedia(
       ],
       { signal, timeout: 60000, maxBuffer: 1024 * 1024 },
     );
-    const metadata = validateProbe(JSON.parse(result.stdout));
-    if (fullDecode)
-      await exec(
-        process.env.FFMPEG_PATH || 'ffmpeg',
-        [
-          '-v',
-          'error',
-          '-xerror',
-          '-protocol_whitelist',
-          'file,pipe',
-          '-i',
-          path,
-          '-map',
-          '0:v:0',
-          '-map',
-          '0:a?',
-          '-f',
-          'null',
-          '-',
-        ],
-        { signal, timeout: 15 * 60 * 1000, maxBuffer: 1024 * 1024 },
-      );
+    const metadata = validateProbe(JSON.parse(result.stdout), providerHeader);
+    if (fullDecode) {
+      const decode = (audioFilters: string[] = []) =>
+        exec(
+          process.env.FFMPEG_PATH || 'ffmpeg',
+          [
+            '-v',
+            'error',
+            '-xerror',
+            '-protocol_whitelist',
+            'file,pipe',
+            '-i',
+            path,
+            '-map',
+            '0:v:0',
+            '-map',
+            '0:a?',
+            ...audioFilters,
+            '-f',
+            'null',
+            '-',
+          ],
+          { signal, timeout: 15 * 60 * 1000, maxBuffer: 1024 * 1024 },
+        );
+      try {
+        await decode();
+      } catch (error) {
+        signal.throwIfAborted();
+        const stderr = (error as { stderr?: string }).stderr ?? '';
+        const filters = metadata.streams
+          .filter((stream) => stream.codec_type === 'audio')
+          .flatMap((stream, index) =>
+            stream.channels === 2
+              ? [
+                  `-filter:a:${index}`,
+                  'channelmap=map=0|1:channel_layout=stereo',
+                ]
+              : [],
+          );
+        // Some patched AAC streams decode to side-left and side-right. Map both
+        // channels for the null sink only, then require a complete strict decode.
+        if (
+          !providerHeader ||
+          !stderr.includes(
+            "Input channel layout '2 channels (SL+SR)' is not supported",
+          ) ||
+          !filters.length
+        )
+          throw error;
+        await decode(filters);
+      }
+    }
     return metadata;
   } catch (e) {
     signal.throwIfAborted();

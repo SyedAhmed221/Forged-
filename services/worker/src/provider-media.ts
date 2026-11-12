@@ -53,12 +53,12 @@ export function paddingSuffix(packets: string) {
 
 export async function inspectProviderMedia(path: string, signal: AbortSignal) {
   try {
-    return await inspectMedia(path, signal, true);
+    return await inspectMedia(path, signal, true, true);
   } catch (error) {
     signal.throwIfAborted();
     if (!(error instanceof AppError) || error.code !== 'INVALID_MEDIA')
       throw error;
-    const metadata = await inspectMedia(path, signal);
+    const metadata = await inspectMedia(path, signal, false, true);
     if (
       metadata.streams.find((s) => s.codec_type === 'video')?.codec_name !==
       'h264'
@@ -118,7 +118,7 @@ export async function inspectProviderMedia(path: string, signal: AbortSignal) {
         ],
         { signal, timeout: 15 * 60 * 1000, maxBuffer: 1024 * 1024 },
       );
-      await inspectMedia(validationPath, signal, true);
+      await inspectMedia(validationPath, signal, true, true);
       const frames = await exec(
         process.env.FFPROBE_PATH || 'ffprobe',
         [

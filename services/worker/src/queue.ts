@@ -13,6 +13,7 @@ workerPool.on('error', () => {
   console.error(JSON.stringify({ event: 'worker_idle_connection_lost' }));
 });
 export type ClaimedJob = {
+  patch_method: 'orion' | 'luna';
   id: string;
   user_id: string;
   filename: string;

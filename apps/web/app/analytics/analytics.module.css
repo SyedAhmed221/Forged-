@@ -1,0 +1,155 @@
+.body,
+.report,
+.form,
+.group {
+  display: grid;
+  min-width: 0;
+}
+
+.body {
+  gap: 24px;
+  padding: clamp(16px, 3vw, 30px);
+}
+
+.form,
+.group {
+  gap: 10px;
+}
+
+.form label {
+  font-weight: 600;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.controls input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.controls input:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.report {
+  gap: 18px;
+}
+
+.post,
+.caption,
+.stat {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 15px;
+  overflow-wrap: anywhere;
+}
+
+.post {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.post h2 {
+  margin: 0 0 5px;
+  font-size: 1.12rem;
+}
+
+.postMeta,
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 12px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+
+.publicBadge,
+.tags li {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.publicBadge {
+  color: #88e3a9;
+  border-color: #305c40;
+  background: #183022;
+}
+
+.caption p {
+  white-space: pre-wrap;
+}
+
+.tags {
+  list-style: none;
+  padding: 0;
+}
+
+.group h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.engagement,
+.specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.specs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stat dd {
+  margin: 5px 0 0;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.93rem;
+}
+
+@media (max-width: 540px) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

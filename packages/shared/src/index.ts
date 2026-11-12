@@ -23,6 +23,7 @@ export type MediaMetadata = {
     width?: number;
     height?: number;
     sample_rate?: string;
+    channels?: number;
     avg_frame_rate?: string;
     r_frame_rate?: string;
   }[];
@@ -51,6 +52,7 @@ export type Job = {
   cancel_requested: boolean;
 };
 export const uploadSchema = z.object({
+  patch_method: z.enum(['orion', 'luna']).default('orion'),
   filename: z
     .string()
     .min(1)

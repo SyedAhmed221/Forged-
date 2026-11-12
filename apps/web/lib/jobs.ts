@@ -49,8 +49,17 @@ export async function createUpload(request: Request, userId: string) {
     const source = `source/${userId}/${id}`;
     const url = await presignUpload(pending, data.size);
     await db.query(
-      "insert into video_jobs(id,user_id,filename,source_object_key,pending_object_key,input_size_bytes,use_encoder,expires_at) values($1,$2,$3,$4,$5,$6,$7,now()+interval '24 hours')",
-      [id, userId, data.filename, source, pending, data.size, data.use_encoder],
+      "insert into video_jobs(id,user_id,filename,source_object_key,pending_object_key,input_size_bytes,use_encoder,patch_method,expires_at) values($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '24 hours')",
+      [
+        id,
+        userId,
+        data.filename,
+        source,
+        pending,
+        data.size,
+        data.use_encoder,
+        data.patch_method,
+      ],
     );
     return { id, url, expires_in: 600 };
   });
@@ -75,15 +84,15 @@ export async function completeUpload(request: Request, userId: string) {
       job.source_object_key,
       Number(job.input_size_bytes),
     );
-    await db.query(
-      "update video_jobs set status='uploaded',provider_stage='uploaded' where id=$1",
+    const uploaded = await db.query(
+      `update video_jobs set status='uploaded',provider_stage='uploaded' where id=$1 returning ${publicColumns}`,
       [id],
     );
     await db.query(
       "update usage_counters set uploaded_bytes=uploaded_bytes+$2 where user_id=$1 and usage_date=($3::timestamptz at time zone 'UTC')::date",
       [userId, job.input_size_bytes, job.created_at],
     );
-    return { id, status: 'uploaded' };
+    return { id, status: 'uploaded', job: uploaded.rows[0] };
   });
 }
 export async function jobAction(
@@ -94,6 +103,15 @@ export async function jobAction(
 ) {
   idSchema.parse(id);
   return transaction(userId, async (db) => {
+    if (!action && method === 'GET') {
+      const result = await db.query(
+        `select ${publicColumns} from video_jobs where id=$1 and user_id=$2`,
+        [id, userId],
+      );
+      if (!result.rowCount)
+        throw new AppError('NOT_FOUND', 'Video not found.', 404);
+      return result.rows[0];
+    }
     const job = await ownJob(db, id, userId, method !== 'GET');
     if (action === 'start' && method === 'POST') {
       if (['queued', 'processing', 'completed'].includes(job.status))
@@ -138,13 +156,6 @@ export async function jobAction(
         [id],
       );
       return { id, status: 'deleting' };
-    }
-    if (!action && method === 'GET') {
-      const r = await db.query(
-        `select ${publicColumns} from video_jobs where id=$1 and user_id=$2`,
-        [id, userId],
-      );
-      return r.rows[0];
     }
     throw new AppError('NOT_FOUND', 'Route not found.', 404);
   });

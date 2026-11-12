@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, open, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -138,6 +138,14 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
           : video.r_frame_rate || '0/1'
       ).split('/');
       const fps = Number(numerator) / Number(denominator);
+      if (
+        job.patch_method === 'luna' &&
+        ![30, 60].some((rate) => Math.abs(fps - rate) < 0.1)
+      )
+        throw new AppError(
+          'PATCH_METHOD_UNSUPPORTED',
+          'Luna requires a 30 or 60 FPS source. Choose Orion for this video.',
+        );
       if (!Number.isFinite(fps) || fps <= 0)
         throw new AppError(
           'INVALID_MEDIA',
@@ -194,8 +202,10 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
     }
     const response =
       job.use_encoder && !oversized
-        ? await provider.encoded(source, hooks)
-        : await provider.standard(source, hooks);
+        ? await provider.encoded(source, hooks, job.patch_method || 'orion')
+        : await provider.standard(source, hooks, job.patch_method || 'orion');
+    const outputPath = join(dir, 'output.mp4');
+    const outputFile = await open(outputPath, 'wx', 0o600);
     const bytes = await storeOutput(
       response,
       outputKey,
@@ -206,11 +216,11 @@ async function processJob(db: PoolClient, job: ClaimedJob) {
           progress: { received_bytes },
         });
       },
-    );
+      (chunk) => outputFile.writeFile(chunk),
+    ).finally(() => outputFile.close());
     await updateJob(db, job.id, { provider_stage: 'verifying' });
-    await toFile(outputKey, join(dir, 'output.mp4'), signal);
     outputValidationStarted = true;
-    const output = await inspectProviderMedia(join(dir, 'output.mp4'), signal);
+    const output = await inspectProviderMedia(outputPath, signal);
     await db.query('begin');
     try {
       const result = await db.query(
@@ -306,6 +316,7 @@ async function cleanup(db: PoolClient) {
 let lastCleanup = 0;
 while (!stop.signal.aborted) {
   let db: PoolClient | undefined;
+  let processedJob = false;
   try {
     db = await workerPool.connect();
     dbHealthy = true;
@@ -318,7 +329,10 @@ while (!stop.signal.aborted) {
     if (slot.rows[0].ok) {
       try {
         const job = await claim(db);
-        if (job) await processJob(db, job);
+        if (job) {
+          await processJob(db, job);
+          processedJob = true;
+        }
       } finally {
         await db.query('select pg_advisory_unlock(734211,1)');
       }
@@ -332,7 +346,8 @@ while (!stop.signal.aborted) {
       db.release();
     }
   }
-  await delay(2000, undefined, { signal: stop.signal }).catch(() => {});
+  if (!processedJob || !dbHealthy)
+    await delay(2000, undefined, { signal: stop.signal }).catch(() => {});
 }
 server.close();
 await workerPool.end();

@@ -144,6 +144,58 @@ svg {
   padding: 12px 10px;
   font-size: 14px;
 }
+.patch-options {
+  margin: 20px 24px;
+  padding: 18px;
+  border: 1px solid #393d47;
+  border-radius: 9px;
+  background: #111318;
+}
+.processing-server-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 13px;
+}
+.patch-options small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.patch-options fieldset {
+  border: 0;
+  border-top: 1px solid #30333b;
+  padding: 18px 0 0;
+  margin: 18px 0 0;
+  min-width: 0;
+}
+.patch-options legend {
+  font-weight: 600;
+  padding-right: 12px;
+}
+.patch-options p {
+  font-size: 14px;
+  margin: 10px 0;
+}
+.patch-method-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+}
+.patch-method-buttons .button {
+  flex: 1;
+}
+.patch-options .patch-warning {
+  color: #e3ba8c;
+}
+.patch-options .server-online {
+  color: #86efac;
+}
+.patch-options .server-offline {
+  color: #fca5a5;
+}
 .workspace-menu {
   position: relative;
 }
@@ -1361,9 +1413,35 @@ progress::-webkit-progress-value {
   margin: 12px auto;
   max-width: 370px;
 }
-.job-status progress {
-  max-width: 320px;
-  margin: 20px auto;
+.optimization-progress {
+  width: min(100%, 440px);
+  margin: 22px auto 4px;
+}
+.optimization-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #d7dae3;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.optimization-progress-track {
+  height: 9px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: #292c34;
+}
+.optimization-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chrome);
+  transition: width 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .optimization-progress-track > span {
+    transition: none;
+  }
 }
 .job-status > .button {
   margin: 20px 5px 0;

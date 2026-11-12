@@ -34,9 +34,29 @@ export function Studio() {
     duration: 0,
   });
   const [encoder, setEncoder] = useState(false);
+  const [patchMethod, setPatchMethod] = useState<'orion' | 'luna'>('orion');
+  const [serverStatus, setServerStatus] = useState<{
+    online: boolean;
+    latency_ms?: number;
+    location?: string;
+    version?: string;
+  }>();
+  const [checkingServer, setCheckingServer] = useState(false);
+  const [starting, setStarting] = useState(false);
+  async function checkServer() {
+    setCheckingServer(true);
+    try {
+      setServerStatus(await api('/api/processing-status'));
+    } catch {
+      setServerStatus({ online: false });
+    } finally {
+      setCheckingServer(false);
+    }
+  }
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploaded, setUploaded] = useState(0);
+  const [finalizingUpload, setFinalizingUpload] = useState(false);
   const [job, setJob] = useState<Job>();
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
@@ -63,8 +83,40 @@ export function Studio() {
   const [postBusy, setPostBusy] = useState(false);
   const [postResult, setPostResult] = useState('');
   const [publishStage, setPublishStage] = useState<
-    'idle' | 'uploading' | 'submitted' | 'posted' | 'failed'
+    'idle' | 'uploading' | 'submitted' | 'pending' | 'posted' | 'failed'
   >('idle');
+  useEffect(() => {
+    if (publishStage !== 'submitted' || !id || !zernioKey) return;
+    const controller = new AbortController();
+    const deadline = Date.now() + 120_000;
+    let timer: ReturnType<typeof setTimeout>;
+    async function check() {
+      try {
+        const { status } = await api<{
+          status: 'submitted' | 'posted' | 'failed';
+        }>('/api/zernio/publish', {
+          method: 'PATCH',
+          body: JSON.stringify({ apiKey: zernioKey, jobId: id }),
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        if (status !== 'submitted') {
+          setPublishStage(status);
+          setZernioKey('');
+          return;
+        }
+      } catch {
+        if (controller.signal.aborted) return;
+      }
+      if (Date.now() >= deadline) setPublishStage('pending');
+      else timer = setTimeout(check, 5000);
+    }
+    timer = setTimeout(check, 3000);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [id, publishStage, zernioKey]);
   const xhr = useRef<XMLHttpRequest | null>(null);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -99,7 +151,13 @@ export function Studio() {
       try {
         const next = await api<Job>(`/api/jobs/${id}`);
         if (!disposed) {
-          setJob(next);
+          setJob((current) =>
+            current?.id === next.id &&
+            current.status === 'queued' &&
+            next.status === 'uploaded'
+              ? current
+              : next,
+          );
           setPollError('');
           done = terminal.includes(next.status);
         }
@@ -141,6 +199,7 @@ export function Studio() {
   async function upload() {
     if (!file) return;
     setBusy(true);
+    setUploaded(0);
     setError('');
     let created: string | undefined;
     try {
@@ -152,6 +211,7 @@ export function Studio() {
             filename: file.name,
             size: file.size,
             use_encoder: encoder,
+            patch_method: patchMethod,
           }),
         },
       );
@@ -173,10 +233,13 @@ export function Studio() {
         request.ontimeout = () => reject(new Error('Upload timed out.'));
         request.send(file);
       });
-      await api('/api/uploads/complete', {
+      setUploaded(file.size);
+      setFinalizingUpload(true);
+      const result = await api<{ job?: Job }>('/api/uploads/complete', {
         method: 'POST',
         body: JSON.stringify({ id: session.id }),
       });
+      if (result.job) setJob(result.job);
       setId(session.id);
       window.history.replaceState(null, '', `/optimize?job=${session.id}`);
     } catch (e) {
@@ -184,23 +247,46 @@ export function Studio() {
       if (created)
         await api(`/api/jobs/${created}`, { method: 'DELETE' }).catch(() => {});
     } finally {
+      setFinalizingUpload(false);
       setBusy(false);
       xhr.current = null;
     }
   }
   async function action(kind: string) {
     if (!id) return;
+    if (kind === 'start') setStarting(true);
     setError('');
     try {
       if (kind === 'download') {
         const { url } = await api<{ url: string }>(`/api/jobs/${id}/download`);
         window.location.assign(url);
+      } else if (kind === 'start') {
+        const result = await api<{ status: Job['status'] }>(
+          `/api/jobs/${id}/start`,
+          {
+            method: 'POST',
+            signal: AbortSignal.timeout(15000),
+          },
+        );
+        if (result.status === 'queued') {
+          setJob((current) =>
+            current?.id === id && current.status === 'uploaded'
+              ? { ...current, status: 'queued', provider_stage: 'queued' }
+              : current,
+          );
+        }
       } else {
         await api(`/api/jobs/${id}/${kind}`, { method: 'POST' });
         setJob(await api<Job>(`/api/jobs/${id}`));
       }
     } catch (e) {
-      setError((e as Error).message);
+      setError(
+        kind === 'start' && (e as Error).name === 'TimeoutError'
+          ? 'Starting is taking longer than expected. Check the status or try again.'
+          : (e as Error).message,
+      );
+    } finally {
+      if (kind === 'start') setStarting(false);
     }
   }
   async function connectZernio() {
@@ -259,34 +345,26 @@ export function Studio() {
     setPostBusy(true);
     setError('');
     try {
-      const result = await api<{
-        status: string;
-        url: string | null;
-        error: string | null;
-      }>('/api/zernio/publish', {
-        method: 'POST',
-        body: JSON.stringify({
-          apiKey: zernioKey,
-          jobId: id,
-          accountId: postAccount,
-          caption,
-          privacyLevel: privacy,
-          allowComment,
-          allowDuet,
-          allowStitch,
-          previewConfirmed: true,
-          consentGiven: true,
-        }),
-      });
-      setPostResult(result.error || `TikTok posting status: ${result.status}.`);
-      setPublishStage(
-        result.error || result.status === 'failed'
-          ? 'failed'
-          : ['published', 'posted'].includes(result.status)
-            ? 'posted'
-            : 'submitted',
+      const result = await api<{ status: 'submitted' | 'posted' | 'failed' }>(
+        '/api/zernio/publish',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            apiKey: zernioKey,
+            jobId: id,
+            accountId: postAccount,
+            caption,
+            privacyLevel: privacy,
+            allowComment,
+            allowDuet,
+            allowStitch,
+            previewConfirmed: true,
+            consentGiven: true,
+          }),
+        },
       );
-      setZernioKey('');
+      setPublishStage(result.status);
+      if (result.status !== 'submitted') setZernioKey('');
       setPostConsent(false);
     } catch (e) {
       setPublishStage('failed');
@@ -295,6 +373,54 @@ export function Studio() {
       setPostBusy(false);
     }
   }
+  async function checkPublishStatus() {
+    if (!id || !zernioKey) return;
+    setPostBusy(true);
+    setPostResult('');
+    try {
+      const { status } = await api<{
+        status: 'submitted' | 'posted' | 'failed';
+      }>('/api/zernio/publish', {
+        method: 'PATCH',
+        body: JSON.stringify({ apiKey: zernioKey, jobId: id }),
+      });
+      setPublishStage(status);
+      if (status !== 'submitted') setZernioKey('');
+    } catch (error) {
+      setPostResult((error as Error).message);
+    } finally {
+      setPostBusy(false);
+    }
+  }
+  const optimizationActive =
+    starting || job?.status === 'queued' || job?.status === 'processing';
+  const completedStages =
+    job?.status === 'completed'
+      ? 5
+      : job?.status !== 'processing'
+        ? 0
+        : job.provider_stage === 'verifying'
+          ? 4
+          : job.provider_stage === 'receiving'
+            ? 3
+            : job.provider_stage === 'preparing' || !job.provider_stage
+              ? 1
+              : 2;
+  const progress = job?.progress;
+  const measuredProgress =
+    job?.status === 'processing' &&
+    job.provider_stage === 'sending' &&
+    progress?.total_bytes &&
+    progress.total_bytes > 0 &&
+    progress.uploaded_bytes !== undefined
+      ? (progress.uploaded_bytes / progress.total_bytes) * 100
+      : job?.status === 'processing' && job.provider_stage === 'encoding'
+        ? progress?.encoder_percent
+        : undefined;
+  const percent =
+    typeof measuredProgress === 'number' && Number.isFinite(measuredProgress)
+      ? Math.round(Math.max(0, Math.min(100, measuredProgress)))
+      : undefined;
   return (
     <div className="page">
       <div className="page-heading">
@@ -417,6 +543,69 @@ export function Studio() {
                   </div>
                 </div>
               )}
+              <section className="patch-options">
+                <div className="processing-server-status">
+                  <span>
+                    {serverStatus?.location
+                      ? `Server: ${serverStatus.location}`
+                      : 'Processing server'}
+                    {serverStatus?.version
+                      ? ` · Version: ${serverStatus.version}`
+                      : ''}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={checkingServer || busy}
+                    onClick={() => void checkServer()}
+                  >
+                    {checkingServer ? 'Checking…' : 'Test connection'}
+                  </Button>
+                </div>
+                {serverStatus && (
+                  <p
+                    role="status"
+                    className={
+                      serverStatus.online ? 'server-online' : 'server-offline'
+                    }
+                  >
+                    {serverStatus.online
+                      ? `Connected · ${serverStatus.latency_ms} ms`
+                      : 'Connection unavailable. Try again shortly.'}
+                  </p>
+                )}
+                <small>
+                  Latency is measured from Forged’s server to the processing
+                  server.
+                </small>
+                <fieldset disabled={busy}>
+                  <legend>Patch method</legend>
+                  <p>
+                    Orion is recommended. Try Luna if Orion does not work for
+                    your video.
+                  </p>
+                  <div className="patch-method-buttons">
+                    {(['orion', 'luna'] as const).map((method) => (
+                      <Button
+                        key={method}
+                        type="button"
+                        variant={
+                          patchMethod === method ? 'default' : 'secondary'
+                        }
+                        aria-pressed={patchMethod === method}
+                        onClick={() => setPatchMethod(method)}
+                      >
+                        {method === 'orion' ? 'Orion' : 'Luna'}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="patch-warning">
+                    {patchMethod === 'orion'
+                      ? 'Upload to TikTok as Everyone or Friends Only, rather than Only Me.'
+                      : 'Luna is an experimental fallback and requires a 30 or 60 FPS source.'}
+                  </p>
+                </fieldset>
+              </section>
               <div className="encoder-option">
                 <span className="option-icon">
                   <SlidersHorizontal size={20} />
@@ -443,7 +632,11 @@ export function Studio() {
               {busy && (
                 <div className="upload-progress">
                   <div>
-                    <span>Uploading to secure storage</span>
+                    <span aria-live="polite">
+                      {finalizingUpload
+                        ? 'Verifying your upload…'
+                        : 'Uploading to secure storage'}
+                    </span>
                     <strong>
                       {Math.min(
                         100,
@@ -470,7 +663,11 @@ export function Studio() {
                     ) : (
                       <Upload size={17} />
                     )}{' '}
-                    {busy ? 'Uploading…' : 'Upload video'}
+                    {finalizingUpload
+                      ? 'Verifying upload…'
+                      : busy
+                        ? 'Uploading…'
+                        : 'Upload video'}
                   </Button>
                 ) : (
                   <Button asChild>
@@ -525,13 +722,41 @@ export function Studio() {
                     />
                   )}
                 </div>
-                <h3>
-                  {job.status === 'failed'
-                    ? 'This video needs another try'
-                    : job.status === 'cancelled'
-                      ? 'Processing cancelled'
-                      : stages[job.provider_stage || job.status] || job.status}
+                <h3 aria-live="polite">
+                  {starting && job.status === 'uploaded'
+                    ? 'Starting optimization…'
+                    : job.status === 'failed'
+                      ? 'This video needs another try'
+                      : job.status === 'cancelled'
+                        ? 'Processing cancelled'
+                        : stages[job.provider_stage || job.status] ||
+                          job.status}
                 </h3>
+                {(optimizationActive || job.status === 'completed') && (
+                  <div className="optimization-progress">
+                    <div className="optimization-progress-label">
+                      <span>
+                        {completedStages === 5
+                          ? 'Optimization complete'
+                          : `Stage ${completedStages + 1} of 5`}
+                      </span>
+                      {percent !== undefined && (
+                        <span>{percent}% of this stage</span>
+                      )}
+                    </div>
+                    <div
+                      className="optimization-progress-track"
+                      role="progressbar"
+                      aria-label="Optimization stages completed"
+                      aria-valuemin={0}
+                      aria-valuemax={5}
+                      aria-valuenow={completedStages}
+                      aria-valuetext={`${completedStages} of 5 stages complete`}
+                    >
+                      <span style={{ width: `${completedStages * 20}%` }} />
+                    </div>
+                  </div>
+                )}
                 {job.error_message && (
                   <p>
                     {job.error_message.replace(
@@ -540,26 +765,19 @@ export function Studio() {
                     )}
                   </p>
                 )}
-                {job.progress.uploaded_bytes !== undefined &&
+                {job.status === 'processing' &&
+                  job.provider_stage === 'sending' &&
+                  job.progress.uploaded_bytes !== undefined &&
                   job.progress.total_bytes && (
-                    <>
-                      <progress
-                        value={job.progress.uploaded_bytes}
-                        max={job.progress.total_bytes}
-                      />
-                      <p>
-                        {formatBytes(job.progress.uploaded_bytes)} of{' '}
-                        {formatBytes(job.progress.total_bytes)} sent
-                      </p>
-                    </>
+                    <p>
+                      {formatBytes(job.progress.uploaded_bytes)} of{' '}
+                      {formatBytes(job.progress.total_bytes)} sent
+                    </p>
                   )}
-                {job.progress.encoder_percent !== undefined && (
-                  <p>Encoder rendering: {job.progress.encoder_percent}%</p>
-                )}
                 {job.progress.received_bytes !== undefined && (
                   <p>{formatBytes(job.progress.received_bytes)} received</p>
                 )}
-                {job.status === 'uploaded' && (
+                {job.status === 'uploaded' && !starting && (
                   <Button onClick={() => action('start')}>
                     Start optimization <ArrowRight size={17} />
                   </Button>
@@ -650,8 +868,8 @@ export function Studio() {
                       <h4>Post directly to TikTok</h4>
                       <p>
                         Use your own Zernio API key. It stays in this page
-                        session and is sent securely to Forged only when you
-                        connect or post.
+                        session and is sent securely to Forged when you connect,
+                        post or check a post’s status.
                       </p>
                       <label htmlFor="zernio-key">Zernio API key</label>
                       <input
@@ -660,6 +878,7 @@ export function Studio() {
                         autoComplete="off"
                         placeholder="Paste your Zernio API key"
                         value={zernioKey}
+                        disabled={postBusy || publishStage === 'submitted'}
                         onChange={(e) => setZernioKey(e.target.value)}
                       />
                       <a
@@ -672,9 +891,20 @@ export function Studio() {
                       <Button
                         variant="secondary"
                         onClick={connectZernio}
-                        disabled={postBusy || !zernioKey}
+                        disabled={
+                          postBusy || publishStage === 'submitted' || !zernioKey
+                        }
                       >
                         Connect Zernio
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void checkPublishStatus()}
+                        disabled={
+                          postBusy || publishStage === 'submitted' || !zernioKey
+                        }
+                      >
+                        Check TikTok status
                       </Button>
                       {zernioAccounts.length > 0 && (
                         <>
@@ -767,6 +997,9 @@ export function Studio() {
                             className="auto-post-button"
                             disabled={
                               postBusy ||
+                              publishStage === 'submitted' ||
+                              publishStage === 'pending' ||
+                              publishStage === 'posted' ||
                               !postAccount ||
                               !privacy ||
                               !caption.trim() ||
@@ -779,49 +1012,55 @@ export function Studio() {
                               : publishStage === 'posted'
                                 ? 'Posted!'
                                 : publishStage === 'submitted'
-                                  ? 'Submitted!'
-                                  : '♪ AUTO POST TO TIKTOK'}
+                                  ? 'Checking TikTok…'
+                                  : publishStage === 'pending'
+                                    ? 'Confirmation pending'
+                                    : '♪ AUTO POST TO TIKTOK'}
                           </button>
-                          {publishStage !== 'idle' && (
-                            <div
-                              className="publish-progress"
-                              role="status"
-                              aria-live="polite"
-                            >
-                              <span>
-                                {publishStage === 'uploading'
-                                  ? 'Uploading and posting…'
-                                  : publishStage === 'posted'
-                                    ? 'Posted to TikTok'
-                                    : publishStage === 'submitted'
-                                      ? 'Sent to TikTok — awaiting confirmation'
-                                      : 'Posting needs attention'}
-                              </span>
-                              <div
-                                className={`publish-progress-track ${publishStage === 'uploading' ? 'is-publishing' : ''}`}
-                                role="progressbar"
-                                aria-label="TikTok publishing"
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                                aria-valuenow={
-                                  publishStage === 'posted' ? 100 : undefined
-                                }
-                              >
-                                <div
-                                  className="publish-progress-fill"
-                                  style={{
-                                    width:
-                                      publishStage === 'posted'
-                                        ? '100%'
-                                        : publishStage === 'submitted'
-                                          ? '85%'
-                                          : '22%',
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </>
+                      )}
+                      {publishStage !== 'idle' && (
+                        <div
+                          className="publish-progress"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <span>
+                            {publishStage === 'uploading'
+                              ? 'Uploading and posting…'
+                              : publishStage === 'posted'
+                                ? 'Posted to TikTok'
+                                : publishStage === 'submitted'
+                                  ? 'Submitted to Zernio. Checking whether TikTok published it…'
+                                  : publishStage === 'pending'
+                                    ? 'TikTok hasn’t confirmed the post yet. Check again here or in Zernio.'
+                                    : 'TikTok did not confirm publication. Check Zernio for details.'}
+                          </span>
+                          <div
+                            className={`publish-progress-track ${['uploading', 'submitted'].includes(publishStage) ? 'is-publishing' : ''}`}
+                            role="progressbar"
+                            aria-label="TikTok publishing"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={
+                              publishStage === 'posted' ? 100 : undefined
+                            }
+                          >
+                            <div
+                              className="publish-progress-fill"
+                              style={{
+                                width:
+                                  publishStage === 'posted'
+                                    ? '100%'
+                                    : publishStage === 'submitted'
+                                      ? '30%'
+                                      : publishStage === 'uploading'
+                                        ? '22%'
+                                        : '0%',
+                              }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {zernioAccounts.length === 0 && zernioKey && (
                         <p>
@@ -849,6 +1088,8 @@ export function Studio() {
                     variant="ghost"
                     onClick={() => {
                       setId(undefined);
+                      setPublishStage('idle');
+                      setPostResult('');
                       setJob(undefined);
                       setFile(undefined);
                       setUploaded(0);

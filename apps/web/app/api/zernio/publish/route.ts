@@ -12,6 +12,55 @@ import {
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
+type ZernioPost = {
+  _id: string;
+  status: string;
+  platforms?: { platform?: string; status?: string }[];
+};
+
+function publishStatus(post: ZernioPost) {
+  const status =
+    post.platforms?.find((platform) => platform.platform === 'tiktok')
+      ?.status || post.status;
+  if (status === 'published' || status === 'posted') return 'posted';
+  if (['failed', 'cancelled', 'partial', 'deleted'].includes(status))
+    return 'failed';
+  return 'submitted';
+}
+
+const statusInput = z.object({ apiKey: keySchema, jobId: idSchema });
+
+export const PATCH = endpoint(async (request, userId) => {
+  const { apiKey, jobId } = statusInput.parse(await request.json());
+  const postId = await transaction(userId, async (db) => {
+    await ownJob(db, jobId, userId);
+    const result = await db.query(
+      "select metadata->>'post_id' as post_id from job_events where job_id=$1 and event_type='zernio_publish_result' order by id desc limit 1",
+      [jobId],
+    );
+    return result.rows[0]?.post_id as string | undefined;
+  });
+  if (!postId)
+    throw new AppError(
+      'POST_UNCONFIRMED',
+      'Forged has no confirmed submission reference for this video. If you already submitted it, check Zernio before posting again.',
+      404,
+    );
+  const { post } = await zernio<{ post?: ZernioPost }>(
+    apiKey,
+    `/v1/posts/${encodeURIComponent(postId)}`,
+    {},
+    10000,
+  );
+  if (post?._id !== postId)
+    throw new AppError(
+      'POST_UNKNOWN',
+      'Zernio could not confirm this post’s status.',
+      502,
+    );
+  return { status: publishStatus(post) };
+});
+
 const input = z.object({
   apiKey: keySchema,
   jobId: idSchema,
@@ -172,15 +221,7 @@ export const POST = endpoint(async (request, userId) => {
   });
   // A lost response is ambiguous; never automatically submit again.
   const created = await zernio<{
-    post?: {
-      _id: string;
-      status: string;
-      platforms?: {
-        status?: string;
-        errorMessage?: string;
-        platformPostUrl?: string;
-      }[];
-    };
+    post?: ZernioPost & { platforms?: { platformPostUrl?: string }[] };
   }>(
     data.apiKey,
     '/v1/posts',
@@ -224,9 +265,6 @@ export const POST = endpoint(async (request, userId) => {
     );
   });
   return {
-    postId: post._id,
-    status: post.status,
-    url: post.platforms?.[0]?.platformPostUrl || null,
-    error: post.platforms?.[0]?.errorMessage || null,
+    status: publishStatus(post),
   };
 });

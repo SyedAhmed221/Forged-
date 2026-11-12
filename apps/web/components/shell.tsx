@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   WandSparkles,
   History,
+  ChartNoAxesColumnIncreasing,
   Settings,
   ArrowUpRight,
   ShieldCheck,
@@ -21,6 +22,7 @@ const navigation = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/optimize', label: 'Optimize video', icon: WandSparkles },
   { href: '/history', label: 'Video history', icon: History },
+  { href: '/analytics', label: 'Analytics', icon: ChartNoAxesColumnIncreasing },
   { href: '/subscription', label: 'Subscription', icon: ShieldCheck },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
