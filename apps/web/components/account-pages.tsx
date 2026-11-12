@@ -317,6 +317,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [discordBusy, setDiscordBusy] = useState(false);
   const [message, setMessage] = useState('');
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
@@ -336,6 +337,24 @@ export function Login() {
     });
     return () => listener?.data.subscription.unsubscribe();
   }, []);
+  async function signInWithDiscord() {
+    setDiscordBusy(true);
+    setMessage('');
+    try {
+      const auth = authClient();
+      if (!auth) throw new Error('Sign-in is unavailable.');
+      const { error } = await auth.auth.signInWithOAuth({
+        provider: 'discord',
+        options: { redirectTo: window.location.origin + '/dashboard' },
+      });
+      if (error) throw error;
+    } catch {
+      setDiscordBusy(false);
+      setMessage(
+        'Could not connect to Discord. Try again or sign in with email.',
+      );
+    }
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -440,7 +459,7 @@ export function Login() {
               />
             </label>
           )}
-          <Button disabled={busy} type="submit">
+          <Button disabled={busy || discordBusy} type="submit">
             {busy ? (
               <LoaderCircle className="spin" size={17} />
             ) : (
@@ -455,6 +474,16 @@ export function Login() {
                   : 'Sign in'}
             <ArrowRight size={16} />
           </Button>
+          {(mode === 'signin' || mode === 'signup') && (
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={busy || discordBusy}
+              onClick={signInWithDiscord}
+            >
+              {discordBusy ? 'Connecting to Discord…' : 'Continue with Discord'}
+            </Button>
+          )}
         </form>
         {message && (
           <p role="status" className="alert">
@@ -465,7 +494,7 @@ export function Login() {
           <div className="auth-switch">
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || discordBusy}
               onClick={() => {
                 setMode('forgot');
                 setPassword('');
@@ -485,7 +514,7 @@ export function Login() {
                 : ''}{' '}
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || discordBusy}
               onClick={() => {
                 setMode(mode === 'signin' ? 'signup' : 'signin');
                 setMessage('');
