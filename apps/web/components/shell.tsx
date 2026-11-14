@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   WandSparkles,
@@ -30,6 +30,71 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [email, setEmail] = useState<string>();
   const [open, setOpen] = useState(false);
+  const sidebar = useRef<HTMLElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const mobile = window.matchMedia('(max-width: 760px)');
+    if (!mobile.matches) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const focusable = () =>
+      [
+        menuButton.current,
+        ...Array.from(
+          sidebar.current?.querySelectorAll<HTMLElement>(
+            'a[href], button, summary',
+          ) || [],
+        ),
+      ].filter(
+        (element): element is HTMLElement =>
+          !!element && element.getClientRects().length > 0,
+      );
+    let disposed = false;
+    const focusFrame = requestAnimationFrame(() => {
+      const animations = sidebar.current?.getAnimations() || [];
+      void Promise.all(
+        animations.map((animation) => animation.finished.catch(() => {})),
+      ).then(() => {
+        if (!disposed) focusable()[1]?.focus();
+      });
+    });
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Tab') return;
+      const elements = focusable();
+      const first = elements[0];
+      const last = elements.at(-1);
+      const current = document.activeElement;
+      if (
+        event.shiftKey &&
+        (current === first || !elements.includes(current as HTMLElement))
+      ) {
+        event.preventDefault();
+        last?.focus();
+      } else if (
+        !event.shiftKey &&
+        (current === last || !elements.includes(current as HTMLElement))
+      ) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    const resize = () => {
+      if (!mobile.matches) setOpen(false);
+    };
+    document.addEventListener('keydown', keydown);
+    mobile.addEventListener('change', resize);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', keydown);
+      mobile.removeEventListener('change', resize);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [open]);
   useEffect(() => {
     const auth = authClient();
     if (!auth) return;
@@ -79,7 +144,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${open ? 'is-open' : ''}`}>
+      {open && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close navigation menu"
+          tabIndex={-1}
+          onClick={() => setOpen(false)}
+        />
+      )}
+      <aside
+        ref={sidebar}
+        id="workspace-navigation"
+        className={`sidebar ${open ? 'is-open' : ''}`}
+      >
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <BrandLogo />
         </Link>
@@ -188,8 +266,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="breadcrumb">
             <button
+              ref={menuButton}
               className="mobile-menu icon-button"
               aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
+              aria-controls="workspace-navigation"
               onClick={() => setOpen(!open)}
             >
               {open ? <X /> : <Menu />}

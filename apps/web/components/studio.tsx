@@ -42,13 +42,26 @@ export function Studio() {
     version?: string;
   }>();
   const [checkingServer, setCheckingServer] = useState(false);
+  const [serverError, setServerError] = useState('');
   const [starting, setStarting] = useState(false);
   async function checkServer() {
     setCheckingServer(true);
+    setServerError('');
+    setServerStatus(undefined);
     try {
-      setServerStatus(await api('/api/processing-status'));
-    } catch {
-      setServerStatus({ online: false });
+      setServerStatus(
+        await api('/api/processing-status', {
+          signal: AbortSignal.timeout(15000),
+        }),
+      );
+    } catch (error) {
+      setServerError(
+        error instanceof Error && error.name === 'TimeoutError'
+          ? 'The connection check timed out. Please try again.'
+          : error instanceof Error
+            ? error.message
+            : 'The connection could not be checked. Please try again.',
+      );
     } finally {
       setCheckingServer(false);
     }
@@ -572,6 +585,12 @@ export function Studio() {
                     {serverStatus.online
                       ? `Connected · ${serverStatus.latency_ms} ms`
                       : 'Connection unavailable. Try again shortly.'}
+                  </p>
+                )}
+                {serverError && (
+                  <p role="status" className="server-check-error">
+                    {serverError}{' '}
+                    {!signedIn && <Link href="/login">Sign in</Link>}
                   </p>
                 )}
                 <small>

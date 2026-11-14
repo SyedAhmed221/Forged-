@@ -110,6 +110,10 @@ svg {
   flex-direction: column;
   padding: 33px 19px 20px;
   z-index: 30;
+  overflow-y: auto;
+}
+.sidebar-backdrop {
+  display: none;
 }
 .brand {
   display: flex;
@@ -1684,7 +1688,11 @@ td {
   background: none;
   color: var(--cyan);
   font-size: 13px;
-  padding: 0 0 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 6px;
 }
 .auth-footnote {
   display: flex;
@@ -1895,20 +1903,36 @@ td {
 @media (max-width: 760px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.2s;
+    visibility: hidden;
+    transition:
+      transform 0.2s,
+      visibility 0.2s;
     width: 242px;
     top: 65px;
     padding-top: 24px;
   }
   .sidebar.is-open {
     transform: translateX(0);
+    visibility: visible;
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 65px 0 0;
+    z-index: 25;
+    border: 0;
+    padding: 0;
+    background: #0009;
+    touch-action: none;
   }
   .main-wrap {
     margin-left: 0;
   }
   .mobile-menu {
     display: inline-flex !important;
-    padding-left: 0;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
   .topbar {
     height: 65px;
@@ -2629,6 +2653,13 @@ input[type='range'] {
   color: #b8bac3;
   font-size: 15px;
 }
+.marketing-header nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  white-space: nowrap;
+}
 .marketing-header nav a:hover {
   color: #fff;
 }
@@ -2644,7 +2675,7 @@ input[type='range'] {
 #workflow {
   scroll-margin-top: 32px;
 }
-@media (max-width: 700px) {
+@media (max-width: 1000px) {
   .marketing-header {
     padding: 14px 18px;
     gap: 14px;
@@ -2671,6 +2702,8 @@ input[type='range'] {
     width: 50px;
     height: 36px;
   }
+}
+@media (max-width: 700px) {
   .marketing-shell .landing {
     padding-top: 32px;
   }
@@ -2937,6 +2970,48 @@ input[type='range'] {
   }
 }
 @media (max-width: 420px) {
+  .topbar .breadcrumb {
+    min-width: 0;
+  }
+  .breadcrumb > span,
+  .breadcrumb > svg {
+    display: none;
+  }
+  .breadcrumb > strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .marketing-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .marketing-brand {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    line-height: 1.6;
+    min-width: 0;
+  }
+  .marketing-brand .brand-logo {
+    flex-shrink: 0;
+    width: 42px;
+  }
+  .marketing-header > .button {
+    font-size: 13px;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .marketing-header nav {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+  }
+  .subscription-page .page-heading h1 {
+    font-size: clamp(22px, 7vw, 30px);
+  }
   .subscription-prices {
     grid-template-columns: 1fr;
   }
@@ -2946,6 +3021,16 @@ input[type='range'] {
   .subscription-card-title {
     flex-wrap: wrap;
   }
+}
+.server-check-error {
+  margin-top: 12px;
+  color: var(--muted);
+}
+.server-check-error a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
 }
 .cancel-processing-button {
   border: 1px solid #9296a3;
