@@ -744,22 +744,24 @@ export function Studio({
                   Save to Video History and publish directly to TikTok through
                   Zernio after optimization.
                 </span>
-                {signedIn &&
-                  instantPatchEnabled &&
-                  !encoder &&
-                  patchMethod === 'orion' &&
-                  file &&
-                  /\.mp4$/i.test(file.name) &&
-                  !instantResult && (
-                    <Button
-                      onClick={patchInstantly}
-                      disabled={busy || instantBusy}
-                    >
-                      {instantBusy
-                        ? 'Checking and patching…'
-                        : 'Patch instantly'}
-                    </Button>
-                  )}
+                {signedIn && instantPatchEnabled && (
+                  <Button
+                    onClick={patchInstantly}
+                    disabled={
+                      !file ||
+                      !/\.mp4$/i.test(file.name) ||
+                      encoder ||
+                      patchMethod !== 'orion' ||
+                      Boolean(instantResult) ||
+                      busy ||
+                      instantBusy
+                    }
+                  >
+                    {instantBusy
+                      ? 'Checking and patching…'
+                      : 'Patch with Forge Engine'}
+                  </Button>
+                )}
                 {signedIn ? (
                   <Button
                     onClick={upload}
