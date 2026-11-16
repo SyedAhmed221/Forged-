@@ -740,9 +740,9 @@ export function Studio({
                 </div>
               )}
               <div className="upload-actions">
-                <span>
-                  <ShieldCheck size={14} /> Encrypted in transit. Private at
-                  rest.
+                <span id="history-upload-description">
+                  Save to Video History and publish directly to TikTok through
+                  Zernio after optimization.
                 </span>
                 {signedIn &&
                   instantPatchEnabled &&
@@ -764,6 +764,7 @@ export function Studio({
                   <Button
                     onClick={upload}
                     disabled={!file || busy || instantBusy}
+                    aria-describedby="history-upload-description"
                   >
                     {busy ? (
                       <LoaderCircle size={17} className="spin" />
@@ -774,7 +775,7 @@ export function Studio({
                       ? 'Verifying upload…'
                       : busy
                         ? 'Uploading…'
-                        : 'Upload video'}
+                        : 'Upload to Video History'}
                   </Button>
                 ) : (
                   <Button asChild>
@@ -798,8 +799,9 @@ export function Studio({
                     </a>
                   </Button>
                   <p>
-                    The result is available on this device. Use standard upload
-                    for history or direct publishing.
+                    The instant download is available on this device. Use
+                    Upload to Video History to save your video and publish
+                    through Zernio.
                   </p>
                 </div>
               )}
