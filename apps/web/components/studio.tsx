@@ -669,8 +669,8 @@ export function Studio({
                 <fieldset disabled={busy || instantBusy}>
                   <legend>Patch method</legend>
                   <p>
-                    Orion is recommended. Try Luna if Orion does not work for
-                    your video.
+                    Start with Orion for most videos. If Orion fails to patch
+                    your video, select Luna and try again.
                   </p>
                   <div className="patch-method-buttons">
                     {(['orion', 'luna'] as const).map((method) => (
@@ -684,6 +684,9 @@ export function Studio({
                         onClick={() => setPatchMethod(method)}
                       >
                         {method === 'orion' ? 'Orion' : 'Luna'}
+                        {method === 'luna' && (
+                          <span className="patch-resolution-badge">720p</span>
+                        )}
                       </Button>
                     ))}
                   </div>
