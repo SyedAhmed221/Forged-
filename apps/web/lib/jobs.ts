@@ -13,6 +13,27 @@ import {
 } from '../../../packages/shared/src/storage';
 import { transaction, ownJob, publicColumns } from './server';
 import { entitlement } from './billing';
+import type { PoolClient } from 'pg';
+
+export async function reserveVideo(
+  db: PoolClient,
+  userId: string,
+  daily: number | null,
+) {
+  await db.query('insert into profiles(id) values($1) on conflict do nothing', [
+    userId,
+  ]);
+  const usage = await db.query(
+    "insert into usage_counters(user_id,usage_date,submitted_jobs) values($1,(now() at time zone 'UTC')::date,1) on conflict(user_id,usage_date) do update set submitted_jobs=usage_counters.submitted_jobs+1 where usage_counters.submitted_jobs<$2 returning submitted_jobs",
+    [userId, daily ?? 2147483647],
+  );
+  if (!usage.rowCount)
+    throw new AppError(
+      'QUOTA_EXCEEDED',
+      'You have reached your daily video allowance.',
+      429,
+    );
+}
 export async function createUpload(request: Request, userId: string) {
   const data = uploadSchema.parse(await request.json());
   const limits = await entitlement(userId);
@@ -30,20 +51,7 @@ export async function createUpload(request: Request, userId: string) {
           : 'Premium videos over 300 MB require re-encoding. Enable re-encoding and try again.',
     );
   return transaction(userId, async (db) => {
-    await db.query(
-      'insert into profiles(id) values($1) on conflict do nothing',
-      [userId],
-    );
-    const usage = await db.query(
-      "insert into usage_counters(user_id,usage_date,submitted_jobs) values($1,(now() at time zone 'UTC')::date,1) on conflict(user_id,usage_date) do update set submitted_jobs=usage_counters.submitted_jobs+1 where usage_counters.submitted_jobs<$2 returning submitted_jobs",
-      [userId, limits.daily ?? 2147483647],
-    );
-    if (!usage.rowCount)
-      throw new AppError(
-        'QUOTA_EXCEEDED',
-        'You have reached your daily video allowance.',
-        429,
-      );
+    await reserveVideo(db, userId, limits.daily);
     const id = randomUUID();
     const pending = `pending/${userId}/${id}`;
     const source = `source/${userId}/${id}`;

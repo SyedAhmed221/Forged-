@@ -23,9 +23,14 @@ import {
   ENCODER_MAX_BYTES,
 } from '@tikquick/shared';
 import { api, authClient } from '../lib/client';
+import { assembleMp4, prepareMp4 } from '../lib/mp4-prefix';
 import { Button } from './ui/button';
 const terminal = ['completed', 'failed', 'cancelled', 'deleting'];
-export function Studio() {
+export function Studio({
+  instantPatchEnabled,
+}: {
+  instantPatchEnabled: boolean;
+}) {
   const [file, setFile] = useState<File>();
   const [preview, setPreview] = useState<string>();
   const [metadata, setMetadata] = useState({
@@ -68,6 +73,18 @@ export function Studio() {
   }
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [instantBusy, setInstantBusy] = useState(false);
+  const [instantResult, setInstantResult] = useState<{
+    blob: Blob;
+    name: string;
+  }>();
+  const [instantUrl, setInstantUrl] = useState('');
+  useEffect(() => {
+    if (!instantResult) return;
+    const url = URL.createObjectURL(instantResult.blob);
+    setInstantUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [instantResult]);
   const [uploaded, setUploaded] = useState(0);
   const [finalizingUpload, setFinalizingUpload] = useState(false);
   const [job, setJob] = useState<Job>();
@@ -186,6 +203,7 @@ export function Studio() {
     };
   }, [id]);
   function choose(next?: File) {
+    if (busy || instantBusy) return;
     setError('');
     if (!next) return;
     if (!/\.(mp4|mov)$/i.test(next.name)) {
@@ -207,7 +225,57 @@ export function Studio() {
       return;
     }
     setMetadata({ width: 0, height: 0, duration: 0 });
+    setInstantResult(undefined);
     setFile(next);
+  }
+  async function patchInstantly() {
+    if (!file || busy || instantBusy || encoder || patchMethod !== 'orion')
+      return;
+    setInstantBusy(true);
+    setInstantResult(undefined);
+    setInstantUrl('');
+    setError('');
+    try {
+      const prepared = await prepareMp4(file);
+      if (!prepared) {
+        await upload();
+        return;
+      }
+      const result = await api<
+        | { fallback: true }
+        | { fallback: false; prefix: string; ghost: string; size: number }
+      >('/api/instant-patch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Original-File-Size': String(file.size),
+        },
+        body: prepared.prefix,
+        signal: AbortSignal.timeout(15000),
+      });
+      if (result.fallback) {
+        await upload();
+        return;
+      }
+      const prefix = Uint8Array.from(atob(result.prefix), (char) =>
+        char.charCodeAt(0),
+      );
+      const ghost = Uint8Array.from(result.ghost.match(/../g) || [], (byte) =>
+        Number.parseInt(byte, 16),
+      );
+      setInstantResult({
+        blob: assembleMp4(prefix, prepared.payload, ghost, result.size),
+        name: `${file.name.replace(/\.mp4$/i, '')}_ForgedQuality.mp4`,
+      });
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Instant patching failed. Try standard upload.',
+      );
+    } finally {
+      setInstantBusy(false);
+    }
   }
   async function upload() {
     if (!file) return;
@@ -469,7 +537,7 @@ export function Studio() {
                 className="sr-only"
                 id="video-file"
                 onChange={(e) => choose(e.target.files?.[0])}
-                disabled={busy}
+                disabled={busy || instantBusy}
               />
               {preview ? (
                 <div className="video-preview">
@@ -506,9 +574,10 @@ export function Studio() {
                     <button
                       className="icon-button"
                       aria-label="Remove selected video"
-                      disabled={busy}
+                      disabled={busy || instantBusy}
                       onClick={() => {
                         setFile(undefined);
+                        setInstantResult(undefined);
                         setError('');
                         if (input.current) input.current.value = '';
                       }}
@@ -597,7 +666,7 @@ export function Studio() {
                   Latency is measured from Forged’s server to the processing
                   server.
                 </small>
-                <fieldset disabled={busy}>
+                <fieldset disabled={busy || instantBusy}>
                   <legend>Patch method</legend>
                   <p>
                     Orion is recommended. Try Luna if Orion does not work for
@@ -645,7 +714,7 @@ export function Studio() {
                   className="switch"
                   checked={encoder}
                   onChange={(e) => setEncoder(e.target.checked)}
-                  disabled={busy}
+                  disabled={busy || instantBusy}
                 />
               </div>
               {busy && (
@@ -675,8 +744,27 @@ export function Studio() {
                   <ShieldCheck size={14} /> Encrypted in transit. Private at
                   rest.
                 </span>
+                {signedIn &&
+                  instantPatchEnabled &&
+                  !encoder &&
+                  patchMethod === 'orion' &&
+                  file &&
+                  /\.mp4$/i.test(file.name) &&
+                  !instantResult && (
+                    <Button
+                      onClick={patchInstantly}
+                      disabled={busy || instantBusy}
+                    >
+                      {instantBusy
+                        ? 'Checking and patching…'
+                        : 'Patch instantly'}
+                    </Button>
+                  )}
                 {signedIn ? (
-                  <Button onClick={upload} disabled={!file || busy}>
+                  <Button
+                    onClick={upload}
+                    disabled={!file || busy || instantBusy}
+                  >
                     {busy ? (
                       <LoaderCircle size={17} className="spin" />
                     ) : (
@@ -701,6 +789,20 @@ export function Studio() {
                   </Button>
                 )}
               </div>
+              {instantResult && instantUrl && (
+                <div className="job-status" aria-live="polite">
+                  <h3>Ready to download</h3>
+                  <Button asChild>
+                    <a href={instantUrl} download={instantResult.name}>
+                      <Download size={17} /> Download instant patch
+                    </a>
+                  </Button>
+                  <p>
+                    The result is available on this device. Use standard upload
+                    for history or direct publishing.
+                  </p>
+                </div>
+              )}
             </>
           ) : (
             <>
