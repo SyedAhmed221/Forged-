@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { ArrowLeft } from 'lucide-react';
 import {
   packBySlug,
   packageOptions,
@@ -48,7 +49,10 @@ export default async function PackDetail({ params }: Props) {
   if (policy)
     return (
       <article className={styles.empty}>
-        <Link href="/packs">Back to packs</Link>
+        <Link href="/packs" className={styles.backButton}>
+          <ArrowLeft size={18} aria-hidden="true" />
+          Back to packs
+        </Link>
         <h1>{policy.title}</h1>
         {policy.sections.map(([title, text]) => (
           <section key={title}>
@@ -65,7 +69,10 @@ export default async function PackDetail({ params }: Props) {
   if (!pack) notFound();
   return (
     <>
-      <Link href="/packs">Back to packs</Link>
+      <Link href="/packs" className={styles.backButton}>
+        <ArrowLeft size={18} aria-hidden="true" />
+        Back to packs
+      </Link>
       <header className={styles.heading}>
         <h1>{pack.name}</h1>
         <p>{pack.description}</p>

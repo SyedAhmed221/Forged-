@@ -119,3 +119,31 @@
     grid-template-columns: 1fr;
   }
 }
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  min-height: 46px;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e4ec;
+  border-radius: 9px;
+  background: #e0e4ec;
+  color: #101216;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+.backButton:hover {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(224 228 236 / 16%);
+}
+.backButton:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
