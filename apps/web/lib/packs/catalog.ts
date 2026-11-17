@@ -1,3 +1,4 @@
+import { packLicence } from './policies';
 export type Pack = {
   id: string;
   slug: string;
@@ -36,10 +37,10 @@ const premiumSupport = [
   'We’ll take you through every step and explain what each setting does and why it matters. You won’t just copy settings, you’ll understand them. If you get stuck at any point, we’re there to get you unstuck.',
   'By the end, you’ll have the method running smoothly on your own setup, and clips that look better than ever.',
 ];
-const pendingLicence = 'Licence terms will be available before checkout opens.';
+const pendingLicence = packLicence;
 
 // Standard and Premium share the supplied PDF in the private
-// forged-quality-packs bucket. TODO: approve licence terms before enabling checkout.
+// forged-quality-packs bucket.
 const catalog: Pack[] = [
   {
     id: 'max-quality-standard',

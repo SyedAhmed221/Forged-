@@ -11,23 +11,10 @@ import { checkoutEnabled } from '../../../lib/packs/stripe';
 import { PackCheckout } from '../pack-client';
 import styles from '../packs.module.css';
 
-const policies = {
-  terms: {
-    title: 'Pack Terms',
-    pending:
-      'Add business details, licence terms, order conditions and support contact.',
-  },
-  privacy: {
-    title: 'Pack Privacy Policy',
-    pending:
-      'Review payment and receipt data, retention, providers and rights before launch.',
-  },
-  refunds: {
-    title: 'Pack Refund Policy',
-    pending:
-      'Review digital delivery consent, cancellation rights and refund procedures before launch.',
-  },
-} as const;
+import {
+  packPolicies as policies,
+  packSupport,
+} from '../../../lib/packs/policies';
 
 function policyFor(slug: string) {
   return Object.hasOwn(policies, slug)
@@ -63,10 +50,15 @@ export default async function PackDetail({ params }: Props) {
       <article className={styles.empty}>
         <Link href="/packs">Back to packs</Link>
         <h1>{policy.title}</h1>
+        {policy.sections.map(([title, text]) => (
+          <section key={title}>
+            <h2>{title}</h2>
+            <p>{text}</p>
+          </section>
+        ))}
         <p>
-          <strong>TODO: legal review</strong>
+          <a href={`mailto:${packSupport}`}>{packSupport}</a>
         </p>
-        <p>{policy.pending}</p>
       </article>
     );
   const pack = packBySlug(slug);
@@ -129,6 +121,10 @@ export default async function PackDetail({ params }: Props) {
             )}
             <h2>{packPrice(pack)}</h2>
             <p>One-time purchase. No subscription.</p>
+            <p>
+              Sold by Forged Quality.{' '}
+              <a href={`mailto:${packSupport}`}>Contact support</a>
+            </p>
             {pack.purchaseNotice && <p>{pack.purchaseNotice}</p>}
             <p>
               Your receipt and download link go to the email address you enter

@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { packPrice } from './catalog';
 import { orderToken } from './security';
 import { deliveryConsent } from './legal';
+import { packSupport, packSeller } from './policies';
 import { packDb, type PackOrder } from './store';
 
 function positiveInteger(
@@ -77,9 +78,10 @@ export async function sendReceipt(order: PackOrder, key: string) {
     signal: AbortSignal.timeout(8000),
     body: JSON.stringify({
       from: process.env.PACKS_RECEIPT_FROM,
+      reply_to: packSupport,
       to: [order.buyer_email],
       subject: 'Your Forge Quality pack receipt',
-      text: `Order ${order.id}\n${order.product_name}\nPaid: ${label}\n\nDownload: ${link}\nAccess expires: ${order.expires_at?.toISOString()}\n\nYour checkout confirmation: ${deliveryConsent}\nTerms: ${new URL('/packs/terms', origin)}\nRefunds: ${new URL('/packs/refunds', origin)}`,
+      text: `${packSeller}\nSupport: ${packSupport}\nOrder ${order.id}\n${order.product_name}\nPaid: ${label}\n\nDownload: ${link}\nAccess expires: ${order.expires_at?.toISOString()}\n\nYour checkout confirmation: ${deliveryConsent}\nTerms: ${new URL('/packs/terms', origin)}\nRefunds: ${new URL('/packs/refunds', origin)}`,
     }),
   });
   if (!response.ok) throw new Error('Receipt delivery failed');
