@@ -92,6 +92,12 @@ export function Studio({
   const [pollError, setPollError] = useState('');
   const [id, setId] = useState<string>();
   const [maxSize, setMaxSize] = useState<number | null>(MAX_INPUT_BYTES);
+  const supportsLargeUploads = maxSize === 300_000_000;
+  const needsReencoding = supportsLargeUploads && !!file && file.size > maxSize;
+  const allowedSize =
+    supportsLargeUploads && encoder ? ENCODER_MAX_BYTES : maxSize;
+  const exceedsUploadLimit =
+    !!file && allowedSize !== null && file.size > allowedSize;
   const [signedIn, setSignedIn] = useState(false);
   const [zernioKey, setZernioKey] = useState('');
   const [zernioAccounts, setZernioAccounts] = useState<
@@ -214,13 +220,10 @@ export function Studio({
       setError('Choose a video that is not empty.');
       return;
     }
-    const allowedSize =
-      maxSize === 300_000_000 && encoder ? ENCODER_MAX_BYTES : maxSize;
-    if (allowedSize !== null && next.size > allowedSize) {
+    const selectionLimit = supportsLargeUploads ? ENCODER_MAX_BYTES : maxSize;
+    if (selectionLimit !== null && next.size > selectionLimit) {
       setError(
-        maxSize === 300_000_000 && !encoder
-          ? 'This video exceeds 300 MB. Enable re-encoding below, then select the file again (up to 1500 MB).'
-          : `Choose a video no larger than ${((allowedSize || 0) / 1_000_000).toLocaleString()} MB.`,
+        `Choose a video no larger than ${(selectionLimit / 1_000_000).toLocaleString()} MB.`,
       );
       return;
     }
@@ -229,7 +232,14 @@ export function Studio({
     setFile(next);
   }
   async function patchInstantly() {
-    if (!file || busy || instantBusy || encoder || patchMethod !== 'orion')
+    if (
+      !file ||
+      exceedsUploadLimit ||
+      busy ||
+      instantBusy ||
+      encoder ||
+      patchMethod !== 'orion'
+    )
       return;
     setInstantBusy(true);
     setInstantResult(undefined);
@@ -278,7 +288,7 @@ export function Studio({
     }
   }
   async function upload() {
-    if (!file) return;
+    if (!file || exceedsUploadLimit) return;
     setBusy(true);
     setUploaded(0);
     setError('');
@@ -706,8 +716,9 @@ export function Studio({
                     Re-encode before patching <span>OPTIONAL</span>
                   </strong>
                   <small>
-                    Leave off to preserve quality without re-encoding. Enable
-                    only if your video needs compression before patching.
+                    {needsReencoding
+                      ? `This file is ${(file.size / 1_000_000).toFixed(1)} MB (${(file.size / 1048576).toFixed(1)} MiB). Premium files above 300 MB (about 286 MiB) need re-encoding. ${encoder ? 'Select Upload to Video History to continue.' : 'Turn it on to continue.'}`
+                      : 'Enable only if your video needs compression before patching.'}
                   </small>
                 </label>
                 <input
@@ -752,6 +763,7 @@ export function Studio({
                     onClick={patchInstantly}
                     disabled={
                       !file ||
+                      exceedsUploadLimit ||
                       !/\.mp4$/i.test(file.name) ||
                       encoder ||
                       patchMethod !== 'orion' ||
@@ -768,7 +780,9 @@ export function Studio({
                 {signedIn ? (
                   <Button
                     onClick={upload}
-                    disabled={!file || busy || instantBusy}
+                    disabled={
+                      !file || exceedsUploadLimit || busy || instantBusy
+                    }
                     aria-describedby="history-upload-description"
                   >
                     {busy ? (
@@ -804,9 +818,9 @@ export function Studio({
                     </a>
                   </Button>
                   <p>
-                    The instant download is available on this device. Use
-                    Upload to Video History to save your video and publish
-                    through Zernio.
+                    The instant download is available on this device. Use Upload
+                    to Video History to save your video and publish through
+                    Zernio.
                   </p>
                 </div>
               )}
