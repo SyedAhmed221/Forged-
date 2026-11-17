@@ -3,6 +3,7 @@ import { matchesPrice, paypalOrderSchema } from './paypal';
 import { accessDays } from './delivery';
 import { packTransaction, transitionCapture, type PackOrder } from './store';
 import { packsLive, stripeSessionSchema } from './stripe';
+import { ownerTestProduct, ownerTestEmail } from './owner-test';
 
 export function verifyStripePayment(order: PackOrder, raw: unknown) {
   const session = stripeSessionSchema.parse(raw);
@@ -18,7 +19,9 @@ export function verifyStripePayment(order: PackOrder, raw: unknown) {
     session.amount_total !== order.price_minor ||
     session.currency !== order.currency.toLowerCase() ||
     !session.payment_intent ||
-    !session.customer_details?.email
+    !session.customer_details?.email ||
+    (order.product_id === ownerTestProduct &&
+      session.customer_details.email.toLowerCase() !== ownerTestEmail)
   )
     throw new AppError(
       'PAYMENT_UNVERIFIED',

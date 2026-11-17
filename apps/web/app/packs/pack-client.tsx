@@ -5,16 +5,20 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { deliveryConsent } from '../../lib/packs/legal';
 import styles from './packs.module.css';
+import { authClient } from '../../lib/client';
 
 async function postPack<T>(
   action: string,
   body: unknown,
   requestId?: string,
 ): Promise<T> {
+  const session = await authClient()?.auth.getSession();
+  const token = session?.data.session?.access_token;
   const response = await fetch(`/api/packs/${action}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(requestId ? { 'Idempotency-Key': requestId } : {}),
     },
     body: JSON.stringify(body),
@@ -25,7 +29,13 @@ async function postPack<T>(
   return result;
 }
 
-export function PackCheckout({ productId }: { productId: string }) {
+export function PackCheckout({
+  productId,
+  label = 'Pay securely with Stripe',
+}: {
+  productId: string;
+  label?: string;
+}) {
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -61,10 +71,52 @@ export function PackCheckout({ productId }: { productId: string }) {
         {deliveryConsent}
       </label>
       <Button disabled={!consented || busy} onClick={checkout}>
-        {busy ? 'Opening secure checkout�' : 'Pay securely with Stripe'}
+        {busy ? 'Opening secure checkout…' : label}
       </Button>
       {message && <p role="status">{message}</p>}
     </div>
+  );
+}
+
+export function PrivatePackTest() {
+  const [eligible, setEligible] = useState(false);
+  useEffect(() => {
+    const auth = authClient();
+    if (!auth) return;
+    let disposed = false;
+    let version = 0;
+    async function check() {
+      const current = ++version;
+      setEligible(false);
+      try {
+        const result = await postPack<{ eligible: boolean }>('test-access', {});
+        if (!disposed && current === version) setEligible(result.eligible);
+      } catch {
+        if (!disposed && current === version) setEligible(false);
+      }
+    }
+    void check();
+    const { data } = auth.auth.onAuthStateChange(() => {
+      void check();
+    });
+    return () => {
+      disposed = true;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+  if (!eligible) return null;
+  return (
+    <section className={styles.checkout} aria-label="Private account test">
+      <h3>Private £1 quality pack test</h3>
+      <p>
+        Only available to your signed-in account. Includes the Standard quality
+        pack and an email receipt. This is a real £1 payment.
+      </p>
+      <PackCheckout
+        productId="owner-quality-test"
+        label="Pay £1 and test delivery"
+      />
+    </section>
   );
 }
 

@@ -14,6 +14,10 @@ import {
 } from '../../../../lib/packs/delivery';
 import { packDb, type PackOrder } from '../../../../lib/packs/store';
 import { fulfilStripeOrder } from '../../../../lib/packs/fulfilment';
+import {
+  ownerTestProduct,
+  requirePackTestOwner,
+} from '../../../../lib/packs/owner-test';
 
 export const POST = packsPost(async (request) => {
   const { id, checkoutToken } = z
@@ -36,6 +40,8 @@ export const POST = packsPost(async (request) => {
       'This Stripe checkout could not be found.',
       404,
     );
+  if (stored.product_id === ownerTestProduct)
+    await requirePackTestOwner(request);
   let order = stored;
   if (stored.status === 'pending') {
     const session = await packsStripe(

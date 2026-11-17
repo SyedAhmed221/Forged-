@@ -15,6 +15,11 @@ import {
 } from '../../../../lib/packs/http';
 import { signingSecret } from '../../../../lib/packs/delivery';
 import { packDb, type PackOrder } from '../../../../lib/packs/store';
+import {
+  ownerTestProduct,
+  ownerTestEmail,
+  requirePackTestOwner,
+} from '../../../../lib/packs/owner-test';
 
 export const POST = packsPost(async (request) => {
   if (!checkoutEnabled())
@@ -29,7 +34,18 @@ export const POST = packsPost(async (request) => {
       immediateDelivery: z.literal(true),
     })
     .parse(await readPackJson(request, 2048));
-  const pack = packById(productId);
+  const privateTest = productId === ownerTestProduct;
+  if (privateTest) await requirePackTestOwner(request);
+  const standard = privateTest ? packById('max-quality-standard') : undefined;
+  const pack =
+    privateTest && standard
+      ? {
+          ...standard,
+          id: ownerTestProduct,
+          priceMinor: 100,
+          packageLabel: 'Private account test',
+        }
+      : packById(productId);
   if (
     !pack ||
     !Number.isSafeInteger(pack.priceMinor) ||
@@ -43,8 +59,8 @@ export const POST = packsPost(async (request) => {
   const db = packDb();
   await db.query(
     `insert into forge_packs.orders
-     (id,product_id,product_name,file_key,download_name,price_minor,currency,consent_version)
-     values($1,$2,$3,$4,$5,$6,$7,$8) on conflict(id) do nothing`,
+     (id,product_id,product_name,file_key,download_name,price_minor,currency,consent_version,buyer_email)
+     values($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict(id) do nothing`,
     [
       id,
       pack.id,
@@ -54,6 +70,7 @@ export const POST = packsPost(async (request) => {
       pack.priceMinor,
       pack.currency,
       consentVersion,
+      privateTest ? ownerTestEmail : null,
     ],
   );
   const stored = (
@@ -97,6 +114,7 @@ export const POST = packsPost(async (request) => {
       'checkout/sessions',
       {
         mode: 'payment',
+        ...(privateTest ? { customer_email: ownerTestEmail } : {}),
         'payment_method_types[0]': 'card',
         client_reference_id: id,
         'metadata[application]': 'forged-packs',

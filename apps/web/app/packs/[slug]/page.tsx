@@ -8,7 +8,7 @@ import {
   packPrice,
 } from '../../../lib/packs/catalog';
 import { checkoutEnabled } from '../../../lib/packs/stripe';
-import { PackCheckout } from '../pack-client';
+import { PackCheckout, PrivatePackTest } from '../pack-client';
 import styles from '../packs.module.css';
 
 import {
@@ -131,7 +131,10 @@ export default async function PackDetail({ params }: Props) {
               at checkout.
             </p>
             {pack.fileKey && checkoutEnabled() ? (
-              <PackCheckout productId={pack.id} />
+              <>
+                <PackCheckout productId={pack.id} />
+                {pack.id === 'max-quality-standard' && <PrivatePackTest />}
+              </>
             ) : (
               <p>Purchase available soon.</p>
             )}

@@ -12,6 +12,10 @@ import {
 } from '../../../../lib/packs/delivery';
 import { orderIdSchema, validOrderToken } from '../../../../lib/packs/security';
 import { packTransaction, type PackOrder } from '../../../../lib/packs/store';
+import {
+  ownerTestProduct,
+  requirePackTestOwner,
+} from '../../../../lib/packs/owner-test';
 
 export const POST = packsPost(async (request) => {
   const { id, token } = z
@@ -25,6 +29,14 @@ export const POST = packsPost(async (request) => {
       404,
     );
   return packTransaction(async (db) => {
+    const stored = (
+      await db.query<PackOrder>(
+        'select product_id from forge_packs.orders where id=$1',
+        [id],
+      )
+    ).rows[0];
+    if (stored?.product_id === ownerTestProduct)
+      await requirePackTestOwner(request);
     const order = (
       await db.query<PackOrder>(
         `update forge_packs.orders set download_count=download_count+1
