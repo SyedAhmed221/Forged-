@@ -3,14 +3,10 @@ import { AppError } from '@tikquick/shared';
 import { packById } from '../../../../lib/packs/catalog';
 import {
   checkoutEnabled,
-  decimalAmount,
-  paypalRequest,
-} from '../../../../lib/packs/paypal';
-import {
-  orderIdSchema,
-  orderToken,
-  paypalIdSchema,
-} from '../../../../lib/packs/security';
+  packsStripe,
+  sessionIdSchema,
+} from '../../../../lib/packs/stripe';
+import { orderIdSchema, orderToken } from '../../../../lib/packs/security';
 import { consentVersion } from '../../../../lib/packs/legal';
 import {
   packsPost,
@@ -74,47 +70,54 @@ export const POST = packsPost(async (request) => {
     );
   const checkoutToken = orderToken(secret, 'capture', id);
   if (stored.paypal_order_id)
-    return { id, paypalId: stored.paypal_order_id, checkoutToken };
-  // TODO: Review UK and cross-border VAT and replace the reviewed final price here if needed.
-  const response = await paypalRequest(
-    '/v2/checkout/orders',
-    {
-      intent: 'CAPTURE',
-      purchase_units: [
-        {
-          reference_id: id,
-          description: stored.product_name,
-          amount: {
-            currency_code: stored.currency,
-            value: decimalAmount(stored.price_minor),
-          },
-        },
-      ],
-      payment_source: {
-        paypal: {
-          experience_context: {
-            shipping_preference: 'NO_SHIPPING',
-            user_action: 'PAY_NOW',
-          },
-        },
-      },
-    },
-    id,
-  );
-  if (!response.ok)
     throw new AppError(
-      'CREATE_FAILED',
-      'PayPal could not start checkout. Please try again.',
-      502,
+      'CHECKOUT_EXPIRED',
+      'Refresh the page to start a Stripe checkout.',
+      409,
     );
-  const { id: paypalId } = z
-    .object({ id: paypalIdSchema })
-    .parse(await response.json());
-  const saved = await db.query(
-    `update forge_packs.orders set paypal_order_id=$2 where id=$1
-       and (paypal_order_id is null or paypal_order_id=$2) returning id`,
-    [id, paypalId],
+  if (stored.stripe_checkout_id) {
+    const previous = z
+      .object({ url: z.url().nullable() })
+      .parse(
+        await packsStripe(`checkout/sessions/${stored.stripe_checkout_id}`),
+      );
+    if (!previous.url)
+      throw new AppError(
+        'CHECKOUT_EXPIRED',
+        'Refresh the page to start a new checkout.',
+        409,
+      );
+    return { url: previous.url };
+  }
+  const origin = new URL(process.env.PACKS_APP_URL!);
+  const success = new URL('/packs/complete', origin);
+  success.hash = `${id}.${checkoutToken}`;
+  const session = z.object({ id: sessionIdSchema, url: z.url() }).parse(
+    await packsStripe(
+      'checkout/sessions',
+      {
+        mode: 'payment',
+        'payment_method_types[0]': 'card',
+        client_reference_id: id,
+        'metadata[application]': 'forged-packs',
+        'metadata[order_id]': id,
+        'payment_intent_data[metadata][application]': 'forged-packs',
+        'payment_intent_data[metadata][order_id]': id,
+        'line_items[0][price_data][currency]': stored.currency.toLowerCase(),
+        'line_items[0][price_data][unit_amount]': String(stored.price_minor),
+        'line_items[0][price_data][product_data][name]': stored.product_name,
+        'line_items[0][quantity]': '1',
+        success_url: success.href,
+        cancel_url: new URL(`/packs/${pack.slug}`, origin).href,
+      },
+      `forge-packs-${id}`,
+    ),
   );
-  if (!saved.rowCount) throw new Error('Conflicting PayPal order id');
-  return { id, paypalId, checkoutToken };
+  const saved = await db.query(
+    `update forge_packs.orders set stripe_checkout_id=$2 where id=$1
+     and paypal_order_id is null and (stripe_checkout_id is null or stripe_checkout_id=$2) returning id`,
+    [id, session.id],
+  );
+  if (!saved.rowCount) throw new Error('Conflicting Stripe checkout');
+  return { url: session.url };
 });

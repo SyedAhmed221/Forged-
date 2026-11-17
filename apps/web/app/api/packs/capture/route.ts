@@ -5,7 +5,7 @@ import {
   packRateLimit,
   readPackJson,
 } from '../../../../lib/packs/http';
-import { checkoutEnabled, paypalRequest } from '../../../../lib/packs/paypal';
+import { packsStripe } from '../../../../lib/packs/stripe';
 import { orderIdSchema, validOrderToken } from '../../../../lib/packs/security';
 import {
   downloadPage,
@@ -13,15 +13,9 @@ import {
   signingSecret,
 } from '../../../../lib/packs/delivery';
 import { packDb, type PackOrder } from '../../../../lib/packs/store';
-import { fulfilPackOrder } from '../../../../lib/packs/fulfilment';
+import { fulfilStripeOrder } from '../../../../lib/packs/fulfilment';
 
 export const POST = packsPost(async (request) => {
-  if (!checkoutEnabled())
-    throw new AppError(
-      'CLOSED',
-      'Pack checkout is currently unavailable.',
-      503,
-    );
   const { id, checkoutToken } = z
     .strictObject({ id: orderIdSchema, checkoutToken: z.string().max(60) })
     .parse(await readPackJson(request, 2048));
@@ -36,28 +30,18 @@ export const POST = packsPost(async (request) => {
   ).rows[0];
   if (!stored)
     throw new AppError('NOT_FOUND', 'This checkout could not be found.', 404);
-  const path = `/v2/checkout/orders/${stored.paypal_order_id}`;
+  if (!stored.stripe_checkout_id)
+    throw new AppError(
+      'NOT_FOUND',
+      'This Stripe checkout could not be found.',
+      404,
+    );
   let order = stored;
   if (stored.status === 'pending') {
-    const capture = await paypalRequest(path + '/capture', {}, id);
-    if (capture.status === 422) {
-      const previous = await paypalRequest(path);
-      if (!previous.ok)
-        throw new AppError(
-          'CAPTURE_FAILED',
-          'PayPal could not confirm your payment. Try again.',
-          502,
-        );
-      order = await fulfilPackOrder(stored, await previous.json());
-    } else if (capture.ok) {
-      order = await fulfilPackOrder(stored, await capture.json());
-    } else {
-      throw new AppError(
-        'CAPTURE_FAILED',
-        'PayPal could not confirm your payment. Try again.',
-        502,
-      );
-    }
+    const session = await packsStripe(
+      `checkout/sessions/${stored.stripe_checkout_id}`,
+    );
+    order = await fulfilStripeOrder(stored, session);
   }
   if (order.status !== 'paid')
     throw new AppError(

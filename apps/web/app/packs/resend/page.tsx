@@ -10,7 +10,9 @@ export default function PackResendPage() {
   return (
     <div className={styles.empty}>
       <h1>Resend your download link</h1>
-      <p>Enter your order reference and the email address used with PayPal.</p>
+      <p>
+        Enter your order reference and the email address entered at checkout.
+      </p>
       <PackResend />
     </div>
   );

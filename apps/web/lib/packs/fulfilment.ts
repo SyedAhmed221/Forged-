@@ -2,6 +2,41 @@ import { AppError } from '@tikquick/shared';
 import { matchesPrice, paypalOrderSchema } from './paypal';
 import { accessDays } from './delivery';
 import { packTransaction, transitionCapture, type PackOrder } from './store';
+import { packsLive, stripeSessionSchema } from './stripe';
+
+export function verifyStripePayment(order: PackOrder, raw: unknown) {
+  const session = stripeSessionSchema.parse(raw);
+  if (
+    session.id !== order.stripe_checkout_id ||
+    session.mode !== 'payment' ||
+    session.status !== 'complete' ||
+    session.payment_status !== 'paid' ||
+    session.livemode !== packsLive() ||
+    session.client_reference_id !== order.id ||
+    session.metadata.application !== 'forged-packs' ||
+    session.metadata.order_id !== order.id ||
+    session.amount_total !== order.price_minor ||
+    session.currency !== order.currency.toLowerCase() ||
+    !session.payment_intent ||
+    !session.customer_details?.email
+  )
+    throw new AppError(
+      'PAYMENT_UNVERIFIED',
+      'Stripe has not confirmed a matching completed payment. Check your payment again.',
+      409,
+    );
+  return {
+    captureId: session.payment_intent,
+    email: session.customer_details.email,
+  };
+}
+
+export async function fulfilStripeOrder(order: PackOrder, raw: unknown) {
+  const { captureId, email } = verifyStripePayment(order, raw);
+  return packTransaction((db) =>
+    transitionCapture(db, order, captureId, email, accessDays()),
+  );
+}
 
 export function verifyCapture(
   order: PackOrder,

@@ -4,6 +4,7 @@ import { databaseOptions } from '../../../../packages/shared/src/database';
 export type PackOrder = {
   id: string;
   paypal_order_id: string;
+  stripe_checkout_id?: string | null;
   capture_id: string | null;
   product_id: string;
   product_name: string;

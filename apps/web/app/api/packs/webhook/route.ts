@@ -1,90 +1,103 @@
 import { AppError } from '@tikquick/shared';
 import { z } from 'zod';
-import { packsPost, readPackJson } from '../../../../lib/packs/http';
-import { paypalRequest, verifyWebhook } from '../../../../lib/packs/paypal';
-import { paypalIdSchema } from '../../../../lib/packs/security';
+import { packsPost, readPackText } from '../../../../lib/packs/http';
+import {
+  packsLive,
+  packsStripe,
+  sessionIdSchema,
+  verifyStripeSignature,
+} from '../../../../lib/packs/stripe';
 import {
   packDb,
   revokeCapture,
   type PackOrder,
 } from '../../../../lib/packs/store';
 import { sendInitialReceipt } from '../../../../lib/packs/delivery';
-import { fulfilPackOrder } from '../../../../lib/packs/fulfilment';
+import { fulfilStripeOrder } from '../../../../lib/packs/fulfilment';
 
-const eventSchema = z.object({
-  event_type: z.string(),
-  resource: z.object({
-    id: paypalIdSchema,
-    links: z.array(z.object({ href: z.string(), rel: z.string() })).optional(),
-    supplementary_data: z
-      .object({
-        related_ids: z.object({
-          order_id: paypalIdSchema.optional(),
-          capture_id: paypalIdSchema.optional(),
-        }),
-      })
-      .optional(),
-  }),
-});
-
+export const runtime = 'nodejs';
 export const POST = packsPost(async (request) => {
-  const event = await readPackJson(request, 128 * 1024);
-  if (!(await verifyWebhook(request.headers, event)))
+  const raw = await readPackText(request, 128 * 1024);
+  if (!verifyStripeSignature(raw, request.headers.get('stripe-signature')))
     throw new AppError('INVALID_WEBHOOK', 'Webhook signature is invalid.', 401);
-  const { event_type: type, resource } = eventSchema.parse(event);
-  const related = resource.supplementary_data?.related_ids;
+  const event = z
+    .object({
+      type: z.string(),
+      livemode: z.boolean(),
+      data: z.object({ object: z.object({ id: z.string() }) }),
+    })
+    .parse(JSON.parse(raw));
+  if (event.livemode !== packsLive())
+    throw new AppError('INVALID_WEBHOOK', 'Payment environment mismatch.', 400);
   if (
-    type === 'PAYMENT.CAPTURE.REFUNDED' ||
-    type === 'PAYMENT.CAPTURE.REVERSED'
+    [
+      'checkout.session.completed',
+      'checkout.session.async_payment_succeeded',
+    ].includes(event.type)
   ) {
-    const captureLink = resource.links?.find((link) => link.rel === 'up')?.href;
-    const linkedId = captureLink?.match(
-      /^https:\/\/api(?:-m)?\.(?:sandbox\.)?paypal\.com\/v2\/payments\/captures\/([A-Z0-9]{6,32})\/?$/,
-    )?.[1];
-    const captureId =
-      related?.capture_id ??
-      linkedId ??
-      (type === 'PAYMENT.CAPTURE.REVERSED' ? resource.id : undefined);
-    if (!captureId)
-      throw new AppError(
-        'MISSING_CAPTURE',
-        'Webhook has no capture reference.',
-        422,
-      );
-    await revokeCapture(
-      captureId,
-      type === 'PAYMENT.CAPTURE.REVERSED' ? 'reversed' : 'refunded',
-    );
-  } else if (type === 'PAYMENT.CAPTURE.COMPLETED') {
-    if (!related?.order_id)
-      throw new AppError(
-        'MISSING_ORDER',
-        'Webhook has no order reference.',
-        422,
-      );
+    const id = sessionIdSchema.parse(event.data.object.id);
     const order = (
       await packDb().query<PackOrder>(
-        'select * from forge_packs.orders where paypal_order_id=$1',
-        [related.order_id],
+        'select * from forge_packs.orders where stripe_checkout_id=$1',
+        [id],
       )
     ).rows[0];
     if (order) {
-      if (order.status !== 'pending') {
-        if (order.capture_id === resource.id) await sendInitialReceipt(order);
+      const session = await packsStripe(`checkout/sessions/${id}`);
+      // Delayed methods can complete checkout before funds clear.
+      if (
+        z.object({ payment_status: z.string() }).parse(session)
+          .payment_status !== 'paid'
+      )
         return { received: true };
-      }
-      const response = await paypalRequest(
-        `/v2/checkout/orders/${order.paypal_order_id}`,
-      );
-      if (!response.ok)
-        throw new Error('Unable to verify completed PayPal order');
-      const paid = await fulfilPackOrder(
-        order,
-        await response.json(),
-        resource.id,
-      );
+      const paid = await fulfilStripeOrder(order, session);
       await sendInitialReceipt(paid);
     }
+  } else if (
+    ['charge.refunded', 'charge.dispute.created'].includes(event.type)
+  ) {
+    let chargeId = event.data.object.id;
+    if (event.type === 'charge.dispute.created') {
+      const dispute = z
+        .object({ charge: z.string().regex(/^ch_[A-Za-z0-9]+$/) })
+        .parse(
+          await packsStripe(
+            `disputes/${z
+              .string()
+              .regex(/^dp_[A-Za-z0-9]+$/)
+              .parse(chargeId)}`,
+          ),
+        );
+      chargeId = dispute.charge;
+    }
+    const charge = z
+      .object({
+        payment_intent: z
+          .string()
+          .regex(/^pi_[A-Za-z0-9]+$/)
+          .nullable(),
+        amount_refunded: z.number().int(),
+        livemode: z.boolean(),
+      })
+      .parse(
+        await packsStripe(
+          `charges/${z
+            .string()
+            .regex(/^ch_[A-Za-z0-9]+$/)
+            .parse(chargeId)}`,
+        ),
+      );
+    if (charge.livemode !== packsLive())
+      throw new Error('Charge environment mismatch');
+    // Revoke on any refund, including refund notifications received before fulfilment.
+    if (
+      charge.payment_intent &&
+      (charge.amount_refunded > 0 || event.type === 'charge.dispute.created')
+    )
+      await revokeCapture(
+        charge.payment_intent,
+        event.type === 'charge.dispute.created' ? 'reversed' : 'refunded',
+      );
   }
   return { received: true };
 });

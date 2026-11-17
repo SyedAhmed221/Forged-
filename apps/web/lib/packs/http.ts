@@ -3,7 +3,7 @@ import { AppError } from '@tikquick/shared';
 import { ZodError } from 'zod';
 import { packDb } from './store';
 
-export async function readPackJson(request: Request, limit = 64 * 1024) {
+export async function readPackText(request: Request, limit = 64 * 1024) {
   const reader = request.body?.getReader();
   if (!reader) throw new AppError('INVALID_REQUEST', 'Missing request body.');
   const chunks: Uint8Array[] = [];
@@ -17,11 +17,7 @@ export async function readPackJson(request: Request, limit = 64 * 1024) {
         throw new AppError('BODY_TOO_LARGE', 'Request body is too large.', 413);
       chunks.push(value);
     }
-    try {
-      return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
-    } catch {
-      throw new AppError('INVALID_REQUEST', 'Invalid request body.');
-    }
+    return Buffer.concat(chunks).toString('utf8');
   } finally {
     await reader.cancel().catch(() => {});
     reader.releaseLock();
@@ -78,4 +74,13 @@ export async function packRateLimit(
       'Too many attempts. Try again in a minute.',
       429,
     );
+}
+
+export async function readPackJson(request: Request, limit = 64 * 1024) {
+  const raw = await readPackText(request, limit);
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    throw new AppError('INVALID_REQUEST', 'Invalid request body.');
+  }
 }

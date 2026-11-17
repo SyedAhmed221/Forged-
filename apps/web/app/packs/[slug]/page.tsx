@@ -7,7 +7,7 @@ import {
   packageOptions,
   packPrice,
 } from '../../../lib/packs/catalog';
-import { checkoutEnabled } from '../../../lib/packs/paypal';
+import { checkoutEnabled } from '../../../lib/packs/stripe';
 import { PackCheckout } from '../pack-client';
 import styles from '../packs.module.css';
 
@@ -131,15 +131,11 @@ export default async function PackDetail({ params }: Props) {
             <p>One-time purchase. No subscription.</p>
             {pack.purchaseNotice && <p>{pack.purchaseNotice}</p>}
             <p>
-              Your receipt and download link go to your PayPal email address.
+              Your receipt and download link go to the email address you enter
+              at checkout.
             </p>
             {pack.fileKey && checkoutEnabled() ? (
-              <PackCheckout
-                productId={pack.id}
-                currency={pack.currency}
-                clientId={process.env.PAYPAL_CLIENT_ID!}
-                guestCard={process.env.PACKS_PAYPAL_GUEST_CARD === 'true'}
-              />
+              <PackCheckout productId={pack.id} />
             ) : (
               <p>Purchase available soon.</p>
             )}

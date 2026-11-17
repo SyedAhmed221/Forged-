@@ -1,14 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Script from 'next/script';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { deliveryConsent } from '../../lib/packs/legal';
 import styles from './packs.module.css';
@@ -32,169 +25,95 @@ async function postPack<T>(
   return result;
 }
 
-type CheckoutOrder = { id: string; paypalId: string; checkoutToken: string };
-type PayPalButtons = {
-  render: (target: HTMLElement) => Promise<void>;
-  close: () => Promise<void>;
-};
-type PayPalSdk = {
-  Buttons: (options: {
-    createOrder: () => Promise<string>;
-    onApprove: (data: { orderID: string }) => Promise<void>;
-    onCancel: () => void;
-    onError: () => void;
-  }) => PayPalButtons;
-};
-
-export function PackCheckout({
-  productId,
-  currency,
-  clientId,
-  guestCard,
-}: {
-  productId: string;
-  currency: string;
-  clientId: string;
-  guestCard: boolean;
-}) {
+export function PackCheckout({ productId }: { productId: string }) {
   const [consented, setConsented] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [canRetry, setCanRetry] = useState(false);
-  const target = useRef<HTMLDivElement>(null);
-  const order = useRef<CheckoutOrder | null>(null);
+  const [message, setMessage] = useState('');
   const attemptId = useRef('');
-  const captureInFlight = useRef(false);
-
-  const capture = useCallback(async () => {
-    if (!order.current || captureInFlight.current) return;
-    captureInFlight.current = true;
+  async function checkout() {
+    if (!consented || busy) return;
     setBusy(true);
-    setMessage('Checking your PayPal payment…');
+    setMessage('');
     try {
-      const result = await postPack<{
-        downloadPage: string;
-        receiptSent: boolean;
-      }>('capture', {
-        id: order.current.id,
-        checkoutToken: order.current.checkoutToken,
-      });
-      if (!result.receiptSent) {
-        try {
-          sessionStorage.setItem(
-            'forge-packs-receipt-warning',
-            order.current.id,
-          );
-        } catch {}
-      }
-      window.location.assign(result.downloadPage);
-    } catch (error) {
-      setCanRetry(true);
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Could not confirm payment. Check your payment again.',
+      attemptId.current ||= crypto.randomUUID();
+      const { url } = await postPack<{ url: string }>(
+        'create',
+        { productId, immediateDelivery: true },
+        attemptId.current,
       );
-    } finally {
-      captureInFlight.current = false;
+      window.location.assign(url);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Could not start checkout.',
+      );
       setBusy(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !consented || !target.current) return;
-    const sdk = (window as Window & { paypal?: PayPalSdk }).paypal;
-    if (!sdk?.Buttons) return;
-    const buttons = sdk.Buttons({
-      createOrder: async () => {
-        if (order.current) return order.current.paypalId;
-        setMessage('');
-        try {
-          attemptId.current ||= crypto.randomUUID();
-          order.current = await postPack<CheckoutOrder>(
-            'create',
-            { productId, immediateDelivery: true },
-            attemptId.current,
-          );
-          return order.current.paypalId;
-        } catch (error) {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : 'Could not start checkout.',
-          );
-          throw error;
-        }
-      },
-      onApprove: async ({ orderID }) => {
-        if (order.current?.paypalId !== orderID) {
-          setMessage('Could not match this PayPal payment to your order.');
-          return;
-        }
-        await capture();
-      },
-      onCancel: () => {
-        order.current = null;
-        attemptId.current = '';
-        setMessage('PayPal checkout was closed. You can try again.');
-      },
-      onError: () =>
-        setMessage(
-          (previous) =>
-            previous ||
-            'PayPal could not complete checkout. Try again or choose another payment method.',
-        ),
-    });
-    let disposed = false;
-    void buttons.render(target.current).catch(() => {
-      if (!disposed)
-        setMessage(
-          'Could not load PayPal checkout. Refresh the page and try again.',
-        );
-    });
-    return () => {
-      disposed = true;
-      void buttons.close().catch(() => {});
-    };
-  }, [capture, consented, productId, ready]);
-
-  const params = new URLSearchParams({
-    'client-id': clientId,
-    currency,
-    intent: 'capture',
-    components: 'buttons',
-    ...(guestCard ? {} : { 'disable-funding': 'card' }),
-  });
+  }
   return (
     <div className={styles.checkout}>
       <label className={styles.consent}>
         <input
           type="checkbox"
           checked={consented}
-          disabled={busy || canRetry}
+          disabled={busy}
           onChange={(event) => setConsented(event.target.checked)}
         />
         {deliveryConsent}
       </label>
-      {consented && (
-        <Script
-          src={`https://www.paypal.com/sdk/js?${params}`}
-          onReady={() => setReady(true)}
-          onError={() =>
-            setMessage(
-              'Could not load PayPal. Check your connection and try again.',
-            )
-          }
-        />
-      )}
-      <div ref={target} hidden={!consented || canRetry || busy} />
+      <Button disabled={!consented || busy} onClick={checkout}>
+        {busy ? 'Opening secure checkout�' : 'Pay securely with Stripe'}
+      </Button>
       {message && <p role="status">{message}</p>}
-      {canRetry && (
-        <Button onClick={capture} disabled={busy}>
-          Check PayPal payment
-        </Button>
-      )}
+    </div>
+  );
+}
+
+export function PackComplete() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('Confirming your payment�');
+  const inFlight = useRef(false);
+  async function confirm() {
+    if (inFlight.current) return;
+    const [id, checkoutToken] = window.location.hash.slice(1).split('.');
+    if (!id || !checkoutToken) {
+      setMessage(
+        'Open the confirmation link from your Stripe checkout, or use the download link in your receipt.',
+      );
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      const result = await postPack<{
+        downloadPage: string;
+        receiptSent: boolean;
+      }>('capture', { id, checkoutToken });
+      if (!result.receiptSent) {
+        try {
+          sessionStorage.setItem('forge-packs-receipt-warning', id);
+        } catch {}
+      }
+      window.location.replace(result.downloadPage);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Payment confirmation is still pending. Please try again.',
+      );
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    void confirm();
+  }, []);
+  return (
+    <div className={styles.checkout}>
+      <p role="status">{message}</p>
+      <Button onClick={confirm} disabled={busy}>
+        {busy ? 'Checking�' : 'Check payment again'}
+      </Button>
     </div>
   );
 }
@@ -280,7 +199,7 @@ export function PackResend() {
         <input name="id" required maxLength={36} />
       </label>
       <label>
-        PayPal email
+        Checkout email
         <input
           name="email"
           type="email"
