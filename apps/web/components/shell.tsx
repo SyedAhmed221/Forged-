@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link, { type LinkProps } from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Package,
 } from 'lucide-react';
 import { authClient } from '../lib/client';
 import { Button } from './ui/button';
@@ -23,11 +24,21 @@ const navigation = [
   { href: '/optimize', label: 'Optimize video', icon: WandSparkles },
   { href: '/history', label: 'Video history', icon: History },
   { href: '/analytics', label: 'Analytics', icon: ChartNoAxesColumnIncreasing },
+  { href: '/packs', label: 'Forge Quality Packs', icon: Package },
   { href: '/subscription', label: 'Subscription', icon: ShieldCheck },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const inPacks = path === '/packs' || path.startsWith('/packs/');
+  // A new document applies the packs-only PayPal content security policy.
+  const navigate =
+    (href: string): LinkProps['onNavigate'] =>
+    (event) => {
+      if (inPacks === (href === '/packs' || href.startsWith('/packs/'))) return;
+      event.preventDefault();
+      window.location.assign(href);
+    };
   const [email, setEmail] = useState<string>();
   const [open, setOpen] = useState(false);
   const sidebar = useRef<HTMLElement>(null);
@@ -122,6 +133,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Link href="/subscription">Subscription</Link>
             <Link href="#workflow">How it works</Link>
             <Link href="/optimize">Optimize</Link>
+            <Link href="/packs" onNavigate={navigate('/packs')}>
+              Forge Quality Packs
+            </Link>
             <Link href={email ? '/dashboard' : '/login'}>
               {email ? 'My workspace' : 'Sign in'}
             </Link>
@@ -158,7 +172,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         id="workspace-navigation"
         className={`sidebar ${open ? 'is-open' : ''}`}
       >
-        <Link href="/" className="brand" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="brand"
+          onNavigate={navigate('/')}
+          onClick={() => setOpen(false)}
+        >
           <BrandLogo />
         </Link>
         <details className="workspace-menu" key={path}>
@@ -176,13 +195,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </summary>
           <div className="workspace-dropdown">
             {email && <p className="workspace-menu-email">{email}</p>}
-            <Link href="/dashboard" onClick={() => setOpen(false)}>
+            <Link
+              href="/dashboard"
+              onNavigate={navigate('/dashboard')}
+              onClick={() => setOpen(false)}
+            >
               <LayoutDashboard size={16} /> Workspace overview
             </Link>
-            <Link href="/subscription" onClick={() => setOpen(false)}>
+            <Link
+              href="/subscription"
+              onNavigate={navigate('/subscription')}
+              onClick={() => setOpen(false)}
+            >
               <ShieldCheck size={16} /> Plan & billing
             </Link>
-            <Link href="/settings" onClick={() => setOpen(false)}>
+            <Link
+              href="/settings"
+              onNavigate={navigate('/settings')}
+              onClick={() => setOpen(false)}
+            >
               <Settings size={16} /> Account settings
             </Link>
             {email ? (
@@ -196,7 +227,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <LogOut size={16} /> Sign out
               </button>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)}>
+              <Link
+                href="/login"
+                onNavigate={navigate('/login')}
+                onClick={() => setOpen(false)}
+              >
                 <ArrowUpRight size={16} /> Sign in
               </Link>
             )}
@@ -208,6 +243,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
+              onNavigate={navigate(item.href)}
               onClick={() => setOpen(false)}
               aria-current={path === item.href ? 'page' : undefined}
               className={`nav-item ${path === item.href ? 'active' : ''}`}
@@ -228,7 +264,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               Secure uploads. Private downloads. Automatically deleted after 24
               hours.
             </p>
-            <Link href="/settings">
+            <Link href="/settings" onNavigate={navigate('/settings')}>
               Privacy & storage <ArrowUpRight size={13} />
             </Link>
           </div>

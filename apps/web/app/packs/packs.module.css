@@ -1,0 +1,104 @@
+.store {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: clamp(24px, 5vw, 60px) clamp(16px, 4vw, 40px);
+}
+.heading {
+  margin: 0 0 28px;
+}
+.heading h1,
+.empty h1 {
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 1.14;
+}
+.heading p,
+.empty p,
+.cardBody p,
+.checkout p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.grid,
+.detail {
+  display: grid;
+  gap: 20px;
+}
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+}
+.detail {
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  align-items: start;
+}
+.card,
+.empty {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #15171b;
+  overflow: hidden;
+}
+.cardBody,
+.empty {
+  padding: clamp(18px, 4vw, 30px);
+}
+.cardBody {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.cardBody :is(h2, p, ul) {
+  margin: 0;
+}
+.cardBody ul {
+  padding-inline-start: 20px;
+}
+.preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding-top: 24px;
+}
+.links a,
+.checkout a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.checkout {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+}
+.checkout label {
+  display: grid;
+  gap: 8px;
+}
+.checkout .consent {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  line-height: 1.45;
+}
+.consent input {
+  margin-top: 4px;
+}
+.checkout input:not([type='checkbox']) {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  width: 100%;
+  background: #0c0f13;
+  color: inherit;
+}
+.checkout code {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .detail {
+    grid-template-columns: 1fr;
+  }
+}
