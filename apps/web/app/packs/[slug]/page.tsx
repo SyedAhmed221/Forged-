@@ -90,13 +90,23 @@ export default async function PackDetail({ params }: Props) {
               height={428}
             />
           ))}
-          <p>{pack.details}</p>
+          {pack.details.split('\n\n').map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
           <h2>What’s included</h2>
           <ul>
             {pack.contents.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
+          {pack.supportDetails && (
+            <>
+              <h2>Premium: full 1-2-1 support</h2>
+              {pack.supportDetails.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </>
+          )}
           <p>{pack.sizeLabel}</p>
           <h2>Licence</h2>
           <p>{pack.licence}</p>
@@ -119,6 +129,7 @@ export default async function PackDetail({ params }: Props) {
             )}
             <h2>{packPrice(pack)}</h2>
             <p>One-time purchase. No subscription.</p>
+            {pack.purchaseNotice && <p>{pack.purchaseNotice}</p>}
             <p>
               Your receipt and download link go to your PayPal email address.
             </p>

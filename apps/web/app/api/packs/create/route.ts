@@ -52,7 +52,7 @@ export const POST = packsPost(async (request) => {
     [
       id,
       pack.id,
-      pack.name,
+      [pack.name, pack.packageLabel].filter(Boolean).join(' — '),
       pack.fileKey,
       pack.downloadName,
       pack.priceMinor,

@@ -1,6 +1,10 @@
 # Forge Quality Packs
 
-Forge Quality runs on Vercel with Next.js App Router. The existing optimiser uses Supabase Postgres, R2, and Stripe subscriptions. Packs has separate API routes, an isolated Postgres schema and login, its own private R2 bucket, PayPal Orders v2, and receipts over the Resend HTTP API. The existing pack catalog is intentionally empty.
+Forge Quality runs on Vercel with Next.js App Router. The existing optimiser uses Supabase Postgres, R2, and Stripe subscriptions. Packs has separate API routes, an isolated Postgres schema and login, its own private R2 bucket, PayPal Orders v2, and receipts over the Resend HTTP API.
+
+Standard (£74) and Premium (£115) share the supplied 18-page PDF. It has been uploaded and checksum-verified in the private R2 bucket `forged-quality-packs`, object `max-quality/tiktok-max-quality-method-75ee9ca42914b447.pdf` (1,228,512 bytes). Premium adds the advertised personal support. The PDF includes the customer's download links, so its contents stay private. JAGO's £500 lifetime pack remains pending delivery assets and has an empty file key.
+
+Configure the packs runtime with read-only credentials scoped to the dedicated bucket. The provisioning upload used the existing administrator storage credentials. Review the supplied final-purchase notice, digital-delivery consent, licence terms, support contact and booking process before opening sales.
 
 ## Configure a sandbox
 
