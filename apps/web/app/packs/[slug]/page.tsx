@@ -2,7 +2,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { packBySlug, packPrice } from '../../../lib/packs/catalog';
+import {
+  packBySlug,
+  packageOptions,
+  packPrice,
+} from '../../../lib/packs/catalog';
 import { checkoutEnabled } from '../../../lib/packs/paypal';
 import { PackCheckout } from '../pack-client';
 import styles from '../packs.module.css';
@@ -41,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: policy.title, robots: { index: false, follow: true } };
   if (!pack) return {};
   return {
-    title: pack.name,
+    title: [pack.name, pack.packageLabel].filter(Boolean).join(' — '),
     description: pack.description,
     openGraph: {
       title: pack.name,
@@ -93,18 +97,32 @@ export default async function PackDetail({ params }: Props) {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <p>Download size {pack.sizeLabel}</p>
+          <p>{pack.sizeLabel}</p>
           <h2>Licence</h2>
           <p>{pack.licence}</p>
         </article>
         <aside className={styles.card}>
           <div className={styles.cardBody}>
+            {pack.family && (
+              <nav className={styles.options} aria-label="Choose package">
+                {packageOptions(pack).map((option) => (
+                  <Link
+                    key={option.id}
+                    href={`/packs/${option.slug}`}
+                    aria-current={option.id === pack.id ? 'page' : undefined}
+                  >
+                    <span>{option.packageLabel}</span>
+                    <strong>{packPrice(option)}</strong>
+                  </Link>
+                ))}
+              </nav>
+            )}
             <h2>{packPrice(pack)}</h2>
             <p>One-time purchase. No subscription.</p>
             <p>
               Your receipt and download link go to your PayPal email address.
             </p>
-            {checkoutEnabled() ? (
+            {pack.fileKey && checkoutEnabled() ? (
               <PackCheckout
                 productId={pack.id}
                 currency={pack.currency}
@@ -112,7 +130,7 @@ export default async function PackDetail({ params }: Props) {
                 guestCard={process.env.PACKS_PAYPAL_GUEST_CARD === 'true'}
               />
             ) : (
-              <p>Checkout is currently unavailable.</p>
+              <p>Purchase available soon.</p>
             )}
           </div>
         </aside>

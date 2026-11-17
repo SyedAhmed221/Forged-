@@ -58,6 +58,23 @@
   height: auto;
   border-radius: 8px;
 }
+.options {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.options a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.options a[aria-current='page'] {
+  border-color: #d7dce5;
+  background: #242730;
+}
 .links {
   display: flex;
   flex-wrap: wrap;

@@ -1,11 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { activePacks, packPrice } from '../../lib/packs/catalog';
+import {
+  storefrontPacks,
+  packageOptions,
+  packPrice,
+} from '../../lib/packs/catalog';
 import { Button } from '../../components/ui/button';
 import styles from './packs.module.css';
 
 export default function PacksPage() {
-  const packs = activePacks();
+  const packs = storefrontPacks();
   return (
     <>
       <header className={styles.heading}>
@@ -28,13 +32,20 @@ export default function PacksPage() {
               <div className={styles.cardBody}>
                 <h2>{pack.name}</h2>
                 <p>{pack.description}</p>
-                <strong>{packPrice(pack)}</strong>
+                {packageOptions(pack).map((option) => (
+                  <p key={option.id}>
+                    {option.packageLabel && (
+                      <span>{option.packageLabel} · </span>
+                    )}
+                    <strong>{packPrice(option)}</strong>
+                  </p>
+                ))}
                 <Button asChild>
                   <Link
                     href={`/packs/${pack.slug}`}
-                    aria-label={`Buy now — ${pack.name}`}
+                    aria-label={`View pack — ${pack.name}`}
                   >
-                    Buy now
+                    View pack
                   </Link>
                 </Button>
               </div>
