@@ -117,7 +117,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
     return () => data.subscription.unsubscribe();
   }, []);
-  if (path === '/') {
+  if (path === '/' || path === '/faq') {
     return (
       <div className="marketing-shell">
         <header className="marketing-header">
@@ -131,10 +131,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </Link>
           <nav aria-label="Homepage navigation">
             <Link href="/subscription">Subscription</Link>
-            <Link href="#workflow">How it works</Link>
+            <Link href="/#workflow">How it works</Link>
             <Link href="/optimize">Optimize</Link>
             <Link href="/packs" onNavigate={navigate('/packs')}>
               Forge Quality Packs
+            </Link>
+            <Link
+              href="/faq"
+              aria-current={path === '/faq' ? 'page' : undefined}
+            >
+              FAQ
             </Link>
             <Link href={email ? '/dashboard' : '/login'}>
               {email ? 'My workspace' : 'Sign in'}
@@ -151,7 +157,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="footer-brand">
             <BrandLogo />© {new Date().getFullYear()} Forged Studio
           </span>
-          <Link href="/settings">Privacy & storage</Link>
+          <span>
+            <Link href="/faq">FAQ</Link>
+            <span className="footer-dot">·</span>
+            <Link href="/settings">Privacy & storage</Link>
+          </span>
         </footer>
       </div>
     );
@@ -335,6 +345,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </span>
           <span>
             Made for the final export.<span className="footer-dot">·</span>
+            <Link href="/faq" onNavigate={navigate('/faq')}>
+              FAQ
+            </Link>
+            <span className="footer-dot">·</span>
             <Link href="/settings">Privacy</Link>
           </span>
         </footer>

@@ -3137,3 +3137,228 @@ input[type='range'] {
   outline: 2px solid #a5adff;
   outline-offset: 3px;
 }
+.marketing-shell .faq-page {
+  max-width: 880px;
+  padding-top: 72px;
+}
+.marketing-header nav a[aria-current='page'] {
+  color: #fff;
+}
+.faq-heading {
+  margin-bottom: 36px;
+}
+.faq-heading h1 {
+  font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin: 16px 0 12px;
+  overflow-wrap: anywhere;
+}
+.faq-heading p {
+  font-size: 16px;
+  max-width: 520px;
+}
+.faq-list {
+  display: grid;
+  gap: 10px;
+}
+.faq-item {
+  background: linear-gradient(145deg, #121318, #0a0b0e);
+  border: 1px solid #292b32;
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+  interpolate-size: allow-keywords;
+}
+.faq-item:hover,
+.faq-item[open] {
+  border-color: #3d404b;
+}
+.faq-item::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition:
+    block-size 0.25s ease,
+    content-visibility 0.25s allow-discrete;
+}
+.faq-item[open]::details-content {
+  block-size: auto;
+}
+.faq-question {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  padding: 19px 22px;
+  list-style: none;
+  cursor: pointer;
+  color: #f2f3f7;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 12px;
+}
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+.faq-question:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.faq-index {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: #5d606b;
+}
+.faq-question-text {
+  flex: 1;
+  min-width: 0;
+}
+.faq-caret {
+  color: #7d808c;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+.faq-item[open] .faq-caret {
+  transform: rotate(180deg);
+  color: #e6e8f1;
+}
+.faq-answer {
+  display: grid;
+  gap: 12px;
+  padding: 0 22px 22px 58px;
+}
+.faq-answer p {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #a3a5ae;
+}
+.faq-answer a {
+  color: #e6e8f1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #6a6d78;
+}
+.faq-answer a:hover {
+  text-decoration-color: currentColor;
+}
+.faq-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 40px;
+  padding: 26px 28px;
+  border: 1px solid #292b32;
+  border-radius: 12px;
+  background: linear-gradient(125deg, #17181e, #0c0d10);
+}
+.faq-cta h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.faq-cta p {
+  font-size: 15px;
+}
+.faq-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.faq-cta-actions .text-link {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-item::details-content,
+  .faq-caret {
+    transition: none;
+  }
+}
+@media (max-width: 700px) {
+  .marketing-shell .faq-page {
+    padding: 36px 18px 25px;
+  }
+  .faq-question {
+    gap: 12px;
+    padding: 16px 16px;
+    font-size: 16px;
+  }
+  .faq-answer {
+    padding: 0 16px 18px;
+  }
+  .faq-cta {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 22px 18px;
+  }
+  .faq-cta-actions {
+    flex-wrap: wrap;
+  }
+}
+/* Boxed homepage navigation */
+.marketing-header nav {
+  gap: 8px;
+  font-size: 14.5px;
+}
+.marketing-header nav a {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #2a2c34;
+  border-radius: 10px;
+  background: #0c0d11;
+  color: #c3c5ce;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.marketing-header nav a:hover {
+  border-color: #4a4d58;
+  background: #16171d;
+  color: #fff;
+}
+.marketing-header nav a[aria-current='page'] {
+  border-color: #8b8f9d;
+  background: #1c1d24;
+  color: #fff;
+}
+@media (max-width: 1180px) {
+  .marketing-header {
+    padding: 14px 18px;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .marketing-header > .button {
+    margin-left: auto;
+  }
+  .marketing-header nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding-top: 12px;
+    border-top: 1px solid #24252c;
+  }
+  .marketing-header nav a {
+    min-height: 44px;
+  }
+}
+@media (max-width: 420px) {
+  .marketing-header nav {
+    gap: 8px;
+  }
+  .marketing-header nav a {
+    padding: 0 10px;
+    white-space: normal;
+    text-align: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-header nav a {
+    transition: none;
+  }
+}
