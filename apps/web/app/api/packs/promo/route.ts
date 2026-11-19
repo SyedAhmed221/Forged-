@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AppError } from '@tikquick/shared';
-import { packById } from '../../../../lib/packs/catalog';
+import { packAvailable, packById } from '../../../../lib/packs/catalog';
 import {
   packRateLimit,
   packsPost,
@@ -27,7 +27,7 @@ export const POST = packsPost(async (request) => {
     !pack ||
     !Number.isSafeInteger(pack.priceMinor) ||
     pack.priceMinor <= 0 ||
-    !pack.fileKey
+    !packAvailable(pack)
   )
     throw new AppError('NOT_FOUND', 'This pack is unavailable.', 404);
   const promo = findPackPromo(promoCode);

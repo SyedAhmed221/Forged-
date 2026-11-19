@@ -43,9 +43,9 @@ export default function PacksPage() {
                 <Button asChild>
                   <Link
                     href={`/packs/${pack.slug}`}
-                    aria-label={`View pack — ${pack.name}`}
+                    aria-label={`${pack.ctaLabel ?? 'View pack'} — ${pack.name}`}
                   >
-                    View pack
+                    {pack.ctaLabel ?? 'View pack'}
                   </Link>
                 </Button>
               </div>

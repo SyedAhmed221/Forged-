@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { AppError } from '@tikquick/shared';
-import { packById } from '../../../../lib/packs/catalog';
+import { packAvailable, packById } from '../../../../lib/packs/catalog';
 import {
   checkoutEnabled,
   packsStripe,
   sessionIdSchema,
 } from '../../../../lib/packs/stripe';
 import { orderIdSchema, orderToken } from '../../../../lib/packs/security';
-import { consentVersion } from '../../../../lib/packs/legal';
+import {
+  consentVersion,
+  serviceConsentVersion,
+} from '../../../../lib/packs/legal';
 import {
   packsPost,
   packRateLimit,
@@ -52,7 +55,7 @@ export const POST = packsPost(async (request) => {
     !pack ||
     !Number.isSafeInteger(pack.priceMinor) ||
     pack.priceMinor <= 0 ||
-    !pack.fileKey
+    !packAvailable(pack)
   )
     throw new AppError('NOT_FOUND', 'This pack is unavailable.', 404);
   if (privateTest && promoCode)
@@ -85,7 +88,7 @@ export const POST = packsPost(async (request) => {
       pack.downloadName,
       pricing.finalMinor,
       pack.currency,
-      consentVersion,
+      pack.fulfilment === 'service' ? serviceConsentVersion : consentVersion,
       privateTest ? ownerTestEmail : null,
     ],
   );

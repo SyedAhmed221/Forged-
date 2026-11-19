@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
-import { deliveryConsent } from '../../lib/packs/legal';
+import { deliveryConsent, serviceConsent } from '../../lib/packs/legal';
 import styles from './packs.module.css';
 import { authClient } from '../../lib/client';
 
@@ -41,10 +41,12 @@ export function PackCheckout({
   productId,
   label = 'Pay securely with Stripe',
   allowPromo = true,
+  fulfilment = 'download',
 }: {
   productId: string;
   label?: string;
   allowPromo?: boolean;
+  fulfilment?: 'download' | 'service';
 }) {
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -215,7 +217,7 @@ export function PackCheckout({
           disabled={busy}
           onChange={(event) => setConsented(event.target.checked)}
         />
-        {deliveryConsent}
+        {fulfilment === 'service' ? serviceConsent : deliveryConsent}
       </label>
       <Button disabled={!consented || busy || promoBusy} onClick={checkout}>
         {busy ? 'Opening secure checkout…' : buttonLabel}
@@ -268,26 +270,51 @@ export function PrivatePackTest() {
   );
 }
 
+type CaptureResult =
+  | {
+      mode?: 'download';
+      downloadPage: string;
+      receiptSent: boolean;
+    }
+  | {
+      mode: 'service';
+      orderId: string;
+      productName: string;
+      supportEmail: string;
+      receiptSent: boolean;
+    };
+
 export function PackComplete() {
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('Confirming your payment�');
+  const [message, setMessage] = useState('Confirming your payment…');
+  const [serviceOrder, setServiceOrder] = useState<{
+    orderId: string;
+    productName: string;
+    supportEmail: string;
+    receiptSent: boolean;
+  } | null>(null);
   const inFlight = useRef(false);
   async function confirm() {
     if (inFlight.current) return;
     const [id, checkoutToken] = window.location.hash.slice(1).split('.');
     if (!id || !checkoutToken) {
       setMessage(
-        'Open the confirmation link from your Stripe checkout, or use the download link in your receipt.',
+        'Open the confirmation link from your Stripe checkout, or use the link in your receipt.',
       );
       return;
     }
     inFlight.current = true;
     setBusy(true);
     try {
-      const result = await postPack<{
-        downloadPage: string;
-        receiptSent: boolean;
-      }>('capture', { id, checkoutToken });
+      const result = await postPack<CaptureResult>('capture', {
+        id,
+        checkoutToken,
+      });
+      if (result.mode === 'service') {
+        setServiceOrder(result);
+        setMessage('');
+        return;
+      }
       if (!result.receiptSent) {
         try {
           sessionStorage.setItem('forge-packs-receipt-warning', id);
@@ -308,11 +335,39 @@ export function PackComplete() {
   useEffect(() => {
     void confirm();
   }, []);
+  if (serviceOrder) {
+    const mailto = `mailto:${serviceOrder.supportEmail}?subject=${encodeURIComponent(`${serviceOrder.productName} — Order ${serviceOrder.orderId}`)}&body=${encodeURIComponent(`Order reference: ${serviceOrder.orderId}\n\nClip link or attached video:\n`)}`;
+    return (
+      <div className={styles.checkout}>
+        <p role="status">
+          Payment confirmed for <strong>{serviceOrder.productName}</strong>.
+        </p>
+        <p>
+          Order reference <code>{serviceOrder.orderId}</code>
+        </p>
+        <p>
+          Next step: email your video clip (or a Google Drive / WeTransfer link)
+          along with your order reference to{' '}
+          <a href={mailto}>{serviceOrder.supportEmail}</a> and we’ll quality-max
+          your video and send it back to you.
+        </p>
+        <Button asChild>
+          <a href={mailto}>Email your clip now</a>
+        </Button>
+        {!serviceOrder.receiptSent && (
+          <p>
+            If your receipt email does not arrive,{' '}
+            <Link href="/packs/resend">request a new copy here</Link>.
+          </p>
+        )}
+      </div>
+    );
+  }
   return (
     <div className={styles.checkout}>
       <p role="status">{message}</p>
       <Button onClick={confirm} disabled={busy}>
-        {busy ? 'Checking�' : 'Check payment again'}
+        {busy ? 'Checking…' : 'Check payment again'}
       </Button>
     </div>
   );

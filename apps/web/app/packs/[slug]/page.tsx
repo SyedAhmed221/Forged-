@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import {
+  packAvailable,
   packBySlug,
   packageOptions,
   packPrice,
@@ -133,13 +134,25 @@ export default async function PackDetail({ params }: Props) {
               <a href={`mailto:${packSupport}`}>Contact support</a>
             </p>
             {pack.purchaseNotice && <p>{pack.purchaseNotice}</p>}
-            <p>
-              Your receipt and download link go to the email address you enter
-              at checkout.
-            </p>
-            {pack.fileKey && checkoutEnabled() ? (
+            {pack.fulfilment === 'service' ? (
+              <p>
+                Your receipt and order reference go to the email address you
+                enter at checkout. After payment, email your clip and order
+                reference to <a href={`mailto:${packSupport}`}>{packSupport}</a>
+                .
+              </p>
+            ) : (
+              <p>
+                Your receipt and download link go to the email address you enter
+                at checkout.
+              </p>
+            )}
+            {packAvailable(pack) && checkoutEnabled() ? (
               <>
-                <PackCheckout productId={pack.id} />
+                <PackCheckout
+                  productId={pack.id}
+                  fulfilment={pack.fulfilment}
+                />
                 {pack.id === 'max-quality-standard' && <PrivatePackTest />}
               </>
             ) : (

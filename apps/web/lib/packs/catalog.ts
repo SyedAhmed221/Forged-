@@ -14,6 +14,8 @@ export type Pack = {
   fileKey: string;
   downloadName: string;
   active: boolean;
+  fulfilment?: 'download' | 'service';
+  ctaLabel?: string;
   family?: string;
   packageLabel?: string;
   supportDetails?: string[];
@@ -112,8 +114,37 @@ const catalog: Pack[] = [
     downloadName: 'jago-full-quality-pack.zip',
     active: true,
   },
+  {
+    id: 'quality-max-your-vid',
+    slug: 'quality-max-your-vid',
+    name: 'We Quality Max Your Vid',
+    description:
+      'Send us your clip and we’ll run it through our full Max Quality pipeline for you — ready to post in maximum quality.',
+    details:
+      'Don’t want to set up the full PC workflow yourself? Let us do it for you.\n\nSend us your clip and we’ll run it through the exact Max Quality process we use on our own content — enhancing sharpness, clarity and smoothness so TikTok’s compression doesn’t crush your detail.\n\nAfter checkout, email your clip (or a Google Drive / WeTransfer link) along with your order reference to jagofq@gmail.com and we’ll send your quality-maxed video back to you.',
+    priceMinor: 3000,
+    currency: 'GBP',
+    images,
+    contents: [
+      'Full Max Quality processing done for you on 1 video clip',
+      'Enhanced sharpness, clarity and smoothness using our exact workflow',
+      'Exported and prepared specifically to hold maximum quality on TikTok',
+      'Finished video delivered directly back to your email',
+    ],
+    sizeLabel:
+      'Done-for-you service · Email your clip and order reference to jagofq@gmail.com after payment.',
+    licence:
+      'For your own use on personal or commercial content. Includes full Max Quality processing for one video clip per purchase.',
+    fulfilment: 'service',
+    ctaLabel: 'Order now',
+    fileKey: '',
+    downloadName: '',
+    active: true,
+  },
 ];
 
+export const packAvailable = (pack: Pack) =>
+  pack.fulfilment === 'service' || Boolean(pack.fileKey);
 export const activePacks = () => catalog.filter((pack) => pack.active);
 export const storefrontPacks = () =>
   activePacks().filter(

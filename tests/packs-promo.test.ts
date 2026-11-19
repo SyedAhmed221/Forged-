@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as promoPost } from '../apps/web/app/api/packs/promo/route';
-import { packById } from '../apps/web/lib/packs/catalog';
+import {
+  packAvailable,
+  packById,
+  storefrontPacks,
+} from '../apps/web/lib/packs/catalog';
+import { sendReceipt } from '../apps/web/lib/packs/delivery';
 import { verifyStripePayment } from '../apps/web/lib/packs/fulfilment';
 import {
   applyPackPromo,
@@ -196,5 +201,77 @@ describe('Quality pack promo codes', () => {
       }),
     );
     expect(unavailablePack.status).toBe(404);
+
+    const qualityMaxVidResponse = await promoPost(
+      promoRequest({
+        productId: 'quality-max-your-vid',
+        promoCode: 'siv',
+      }),
+    );
+    expect(qualityMaxVidResponse.status).toBe(200);
+    expect(await qualityMaxVidResponse.json()).toMatchObject({
+      code: 'siv',
+      percentOff: 10,
+      originalMinor: 3000,
+      discountMinor: 300,
+      finalMinor: 2700,
+      originalFormatted: '£30.00',
+      discountFormatted: '£3.00',
+      finalFormatted: '£27.00',
+    });
+  });
+
+  it('lists We Quality Max Your Vid (£30) as an available service and sends service receipts', async () => {
+    const service = packById('quality-max-your-vid');
+    expect(service).toMatchObject({
+      name: 'We Quality Max Your Vid',
+      priceMinor: 3000,
+      currency: 'GBP',
+      fulfilment: 'service',
+      images: [{ src: '/packs/forge-quality.png', alt: expect.any(String) }],
+    });
+    expect(packAvailable(service!)).toBe(true);
+    expect(packAvailable(packById('jago-full-quality-lifetime')!)).toBe(false);
+    expect(storefrontPacks().map((p) => p.id)).toContain(
+      'quality-max-your-vid',
+    );
+
+    vi.stubEnv('PACKS_APP_URL', 'https://www.forgequality.co.uk');
+    vi.stubEnv('PACKS_RESEND_API_KEY', 're_test_key');
+    vi.stubEnv('PACKS_RECEIPT_FROM', 'orders@forgequality.co.uk');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await sendReceipt(
+        {
+          id: '4a32d8ca-93e2-4f48-83d9-64e8a1b73a14',
+          paypal_order_id: '',
+          capture_id: 'pi_service123',
+          product_id: 'quality-max-your-vid',
+          product_name: 'We Quality Max Your Vid',
+          file_key: '',
+          download_name: '',
+          price_minor: 2700,
+          currency: 'GBP',
+          buyer_email: 'buyer@example.com',
+          status: 'paid',
+          paid_at: new Date(),
+          expires_at: new Date(),
+          receipt_sent_at: null,
+        },
+        'receipt-key-1',
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const payload = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+      expect(payload.subject).toBe('Your Forge Quality order receipt');
+      expect(payload.text).toContain('We Quality Max Your Vid');
+      expect(payload.text).toContain('£27.00');
+      expect(payload.text).toContain('jagofq@gmail.com');
+      expect(payload.text).not.toContain('/packs/download#');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

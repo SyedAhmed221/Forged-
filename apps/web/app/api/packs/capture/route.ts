@@ -14,6 +14,7 @@ import {
 } from '../../../../lib/packs/delivery';
 import { packDb, type PackOrder } from '../../../../lib/packs/store';
 import { fulfilStripeOrder } from '../../../../lib/packs/fulfilment';
+import { packSupport } from '../../../../lib/packs/policies';
 import {
   ownerTestProduct,
   requirePackTestOwner,
@@ -50,11 +51,20 @@ export const POST = packsPost(async (request) => {
     order = await fulfilStripeOrder(stored, session);
   }
   if (order.status !== 'paid')
-    throw new AppError(
-      'REVOKED',
-      'This order no longer has download access.',
-      409,
-    );
+    throw new AppError('REVOKED', 'This order no longer has access.', 409);
   const receiptSent = await sendInitialReceipt(order).catch(() => false);
-  return { downloadPage: downloadPage(id), receiptSent };
+  if (!order.file_key) {
+    return {
+      mode: 'service' as const,
+      orderId: order.id,
+      productName: order.product_name,
+      supportEmail: packSupport,
+      receiptSent,
+    };
+  }
+  return {
+    mode: 'download' as const,
+    downloadPage: downloadPage(id),
+    receiptSent,
+  };
 });

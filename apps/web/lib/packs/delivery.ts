@@ -2,7 +2,7 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { packPrice } from './catalog';
 import { orderToken } from './security';
-import { deliveryConsent } from './legal';
+import { deliveryConsent, serviceConsent } from './legal';
 import { packSupport, packSeller } from './policies';
 import { packDb, type PackOrder } from './store';
 
@@ -62,11 +62,18 @@ export async function signPack(order: PackOrder) {
 
 export async function sendReceipt(order: PackOrder, key: string) {
   const origin = new URL(process.env.PACKS_APP_URL!);
-  const link = new URL(downloadPage(order.id), origin).href;
   const label = packPrice({
     priceMinor: order.price_minor,
     currency: order.currency as 'GBP' | 'USD' | 'EUR',
   });
+  const isDownload = Boolean(order.file_key);
+  const subject = isDownload
+    ? 'Your Forge Quality pack receipt'
+    : 'Your Forge Quality order receipt';
+  const fulfilmentBlock = isDownload
+    ? `Download: ${new URL(downloadPage(order.id), origin).href}\nAccess expires: ${order.expires_at?.toISOString()}`
+    : `Next step: Email your video clip (or a Google Drive / WeTransfer link) with your order reference (${order.id}) to ${packSupport} and we will quality-max your video and send it back to you.`;
+  const consentText = isDownload ? deliveryConsent : serviceConsent;
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     redirect: 'error',
@@ -80,8 +87,8 @@ export async function sendReceipt(order: PackOrder, key: string) {
       from: process.env.PACKS_RECEIPT_FROM,
       reply_to: packSupport,
       to: [order.buyer_email],
-      subject: 'Your Forge Quality pack receipt',
-      text: `${packSeller}\nSupport: ${packSupport}\nOrder ${order.id}\n${order.product_name}\nPaid: ${label}\n\nDownload: ${link}\nAccess expires: ${order.expires_at?.toISOString()}\n\nYour checkout confirmation: ${deliveryConsent}\nTerms: ${new URL('/packs/terms', origin)}\nRefunds: ${new URL('/packs/refunds', origin)}`,
+      subject,
+      text: `${packSeller}\nSupport: ${packSupport}\nOrder ${order.id}\n${order.product_name}\nPaid: ${label}\n\n${fulfilmentBlock}\n\nYour checkout confirmation: ${consentText}\nTerms: ${new URL('/packs/terms', origin)}\nRefunds: ${new URL('/packs/refunds', origin)}`,
     }),
   });
   if (!response.ok) throw new Error('Receipt delivery failed');

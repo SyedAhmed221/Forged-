@@ -13,11 +13,11 @@ export const packPolicies = {
       ],
       [
         'Your purchase',
-        'Standard costs GBP 74 and Premium costs GBP 115. Each is a one-time purchase, separate from any Forge subscription. The final amount is shown before payment in Stripe Checkout. Both packages include the same PC-only PDF method and its linked resources. Premium also includes the personal support described on its product page; email us to arrange that support.',
+        'Standard costs GBP 74, Premium costs GBP 115, and We Quality Max Your Vid costs GBP 30. Each is a one-time purchase, separate from any Forge subscription. The final amount (including any valid discount code) is shown before payment in Stripe Checkout. Standard and Premium include the same PC-only PDF method and its linked resources; Premium also includes the personal support described on its product page. We Quality Max Your Vid is a done-for-you video-processing service for one video clip per purchase.',
       ],
       [
         'Delivery and access',
-        'After Stripe confirms payment, your download is available on the confirmation page and we send a receipt with a download link to your checkout email. The link allows up to 10 download requests for 30 days. Save your downloaded PDF. If you cannot access your purchase, contact support.',
+        'After Stripe confirms payment for a downloadable pack, your download is available on the confirmation page and we send a receipt with a download link to your checkout email. The link allows up to 10 download requests for 30 days. Save your downloaded PDF. For We Quality Max Your Vid, your confirmation page and email receipt include your order reference — email your clip and order reference to jagofq@gmail.com to receive your finished video.',
       ],
       ['Using the pack', packLicence],
       [
