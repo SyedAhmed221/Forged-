@@ -6,12 +6,8 @@ import {
   SlidersHorizontal,
   Download,
   ShieldCheck,
-  Film,
-  AudioLines,
-  Check,
-  Play,
-  MoveUpRight,
 } from 'lucide-react';
+import { HeroComparison } from '../components/hero-comparison';
 import { Button } from '../components/ui/button';
 export default function Home() {
   return (
@@ -53,64 +49,7 @@ export default function Home() {
             login needed
           </div>
         </div>
-        <div
-          className="hero-art"
-          aria-label="Illustration of video preparation"
-        >
-          <div className="art-grid" />
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="video-stack stack-back" />
-          <div className="video-stack stack-mid" />
-          <div className="video-stack stack-front">
-            <div className="preview-top">
-              <span className="record-dot" />
-              THE NEXT FRAME<span>00:18</span>
-            </div>
-            <div className="abstract-scene">
-              <div className="scene-sun" />
-              <div className="scene-ridge ridge-back" />
-              <div className="scene-ridge ridge-front" />
-              <div className="scene-water" />
-              <div className="scene-line" />
-            </div>
-            <div className="preview-play">
-              <Play size={17} fill="currentColor" />
-            </div>
-            <div className="preview-bottom">
-              <span>
-                MAKE EVERY
-                <br />
-                <b>FRAME COUNT.</b>
-              </span>
-              <span>
-                4K
-                <br />
-                9:16
-              </span>
-            </div>
-          </div>
-          <div className="floating-label label-source">
-            <Film size={17} />
-            <div>
-              Your original<small>Every detail matters</small>
-            </div>
-            <Check size={14} />
-          </div>
-          <div className="floating-label label-ready">
-            <span className="ready-icon">
-              <Check size={17} />
-            </span>
-            <div>
-              Ready for the feed<small>A better final step.</small>
-            </div>
-            <MoveUpRight size={16} />
-          </div>
-          <div className="art-caption">
-            <AudioLines size={16} />
-            <span>CREATE. OPTIMIZE. SHARE.</span>
-          </div>
-        </div>
+        <HeroComparison />
       </section>
       <div className="feature-strip">
         <div>
