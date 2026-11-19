@@ -29,38 +29,185 @@ async function postPack<T>(
   return result;
 }
 
+type AppliedPromo = {
+  code: string;
+  percentOff: number;
+  originalFormatted: string;
+  discountFormatted: string;
+  finalFormatted: string;
+};
+
 export function PackCheckout({
   productId,
   label = 'Pay securely with Stripe',
+  allowPromo = true,
 }: {
   productId: string;
   label?: string;
+  allowPromo?: boolean;
 }) {
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
   const attemptId = useRef('');
-  async function checkout() {
-    if (!consented || busy) return;
-    setBusy(true);
+
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!allowPromo || promoBusy || busy) return;
+    if (!code) {
+      setPromoError('Enter a discount code to apply.');
+      return;
+    }
+    setPromoBusy(true);
+    setPromoError('');
     setMessage('');
     try {
+      const result = await postPack<AppliedPromo>('promo', {
+        productId,
+        promoCode: code,
+      });
+      attemptId.current = '';
+      setAppliedPromo(result);
+      setPromoInput('');
+    } catch (error) {
+      setPromoError(
+        error instanceof Error
+          ? error.message
+          : 'That discount code is not valid.',
+      );
+    } finally {
+      setPromoBusy(false);
+    }
+  }
+
+  function removePromo() {
+    attemptId.current = '';
+    setAppliedPromo(null);
+    setPromoError('');
+    setMessage('');
+  }
+
+  async function checkout() {
+    if (!consented || busy || promoBusy) return;
+    setBusy(true);
+    setMessage('');
+    setPromoError('');
+    try {
+      const pendingCode = allowPromo
+        ? (appliedPromo?.code ?? promoInput.trim())
+        : '';
       attemptId.current ||= crypto.randomUUID();
       const { url } = await postPack<{ url: string }>(
         'create',
-        { productId, immediateDelivery: true },
+        {
+          productId,
+          immediateDelivery: true,
+          ...(pendingCode ? { promoCode: pendingCode } : {}),
+        },
         attemptId.current,
       );
       window.location.assign(url);
     } catch (error) {
+      attemptId.current = '';
       setMessage(
         error instanceof Error ? error.message : 'Could not start checkout.',
       );
       setBusy(false);
     }
   }
+
+  const buttonLabel =
+    appliedPromo && label === 'Pay securely with Stripe'
+      ? `Pay ${appliedPromo.finalFormatted} securely with Stripe`
+      : label;
+
   return (
     <div className={styles.checkout}>
+      {allowPromo && (
+        <section className={styles.promoSection} aria-label="Discount code">
+          <label htmlFor={`promo-${productId}`} className={styles.promoLabel}>
+            Discount code
+          </label>
+          {appliedPromo ? (
+            <div className={styles.promoApplied} role="status">
+              <div className={styles.promoAppliedHeader}>
+                <span className={styles.promoTag}>
+                  {appliedPromo.code.toUpperCase()} · {appliedPromo.percentOff}%
+                  off
+                </span>
+                <button
+                  type="button"
+                  className={styles.promoRemove}
+                  disabled={busy}
+                  onClick={removePromo}
+                >
+                  Remove
+                </button>
+              </div>
+              <dl className={styles.promoSummary}>
+                <div>
+                  <dt>Original price</dt>
+                  <dd className={styles.promoOriginal}>
+                    {appliedPromo.originalFormatted}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Discount ({appliedPromo.percentOff}%)</dt>
+                  <dd className={styles.promoSavings}>
+                    −{appliedPromo.discountFormatted}
+                  </dd>
+                </div>
+                <div className={styles.promoTotalRow}>
+                  <dt>Total</dt>
+                  <dd>{appliedPromo.finalFormatted}</dd>
+                </div>
+              </dl>
+            </div>
+          ) : (
+            <div className={styles.promoRow}>
+              <input
+                id={`promo-${productId}`}
+                type="text"
+                value={promoInput}
+                placeholder="Enter promo code"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={40}
+                disabled={busy || promoBusy}
+                onChange={(event) => {
+                  setPromoInput(event.target.value);
+                  if (promoError) setPromoError('');
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void applyPromo();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                className={styles.promoApply}
+                disabled={busy || promoBusy || !promoInput.trim()}
+                onClick={() => void applyPromo()}
+              >
+                {promoBusy ? 'Checking…' : 'Apply'}
+              </Button>
+            </div>
+          )}
+          {promoError && (
+            <p role="status" className={styles.promoError}>
+              {promoError}
+            </p>
+          )}
+        </section>
+      )}
       <label className={styles.consent}>
         <input
           type="checkbox"
@@ -70,8 +217,8 @@ export function PackCheckout({
         />
         {deliveryConsent}
       </label>
-      <Button disabled={!consented || busy} onClick={checkout}>
-        {busy ? 'Opening secure checkout…' : label}
+      <Button disabled={!consented || busy || promoBusy} onClick={checkout}>
+        {busy ? 'Opening secure checkout…' : buttonLabel}
       </Button>
       {message && <p role="status">{message}</p>}
     </div>
@@ -115,6 +262,7 @@ export function PrivatePackTest() {
       <PackCheckout
         productId="owner-quality-test"
         label="Pay £1 and test delivery"
+        allowPromo={false}
       />
     </section>
   );

@@ -20,6 +20,7 @@ import {
   ownerTestEmail,
   requirePackTestOwner,
 } from '../../../../lib/packs/owner-test';
+import { applyPackPromo, findPackPromo } from '../../../../lib/packs/promo';
 
 export const POST = packsPost(async (request) => {
   if (!checkoutEnabled())
@@ -28,10 +29,11 @@ export const POST = packsPost(async (request) => {
       'Pack checkout is currently unavailable.',
       503,
     );
-  const { productId } = z
+  const { productId, promoCode } = z
     .strictObject({
       productId: z.string().min(1).max(80),
       immediateDelivery: z.literal(true),
+      promoCode: z.string().trim().max(40).optional(),
     })
     .parse(await readPackJson(request, 2048));
   const privateTest = productId === ownerTestProduct;
@@ -53,6 +55,20 @@ export const POST = packsPost(async (request) => {
     !pack.fileKey
   )
     throw new AppError('NOT_FOUND', 'This pack is unavailable.', 404);
+  if (privateTest && promoCode)
+    throw new AppError(
+      'INVALID_PROMO',
+      'Discount codes cannot be used on the private £1 test.',
+      400,
+    );
+  const promo = promoCode ? findPackPromo(promoCode) : undefined;
+  if (promoCode && !promo)
+    throw new AppError(
+      'INVALID_PROMO',
+      'That discount code is not valid.',
+      400,
+    );
+  const pricing = applyPackPromo(pack.priceMinor, promo);
   const secret = signingSecret();
   await packRateLimit(request, 'create', 8);
   const id = orderIdSchema.parse(request.headers.get('Idempotency-Key'));
@@ -67,7 +83,7 @@ export const POST = packsPost(async (request) => {
       [pack.name, pack.packageLabel].filter(Boolean).join(' — '),
       pack.fileKey,
       pack.downloadName,
-      pack.priceMinor,
+      pricing.finalMinor,
       pack.currency,
       consentVersion,
       privateTest ? ownerTestEmail : null,
@@ -75,8 +91,8 @@ export const POST = packsPost(async (request) => {
   );
   const stored = (
     await db.query<PackOrder>(
-      "select * from forge_packs.orders where id=$1 and product_id=$2 and status='pending' and created_at > now()-interval '30 minutes'",
-      [id, pack.id],
+      "select * from forge_packs.orders where id=$1 and product_id=$2 and price_minor=$3 and status='pending' and created_at > now()-interval '30 minutes'",
+      [id, pack.id, pricing.finalMinor],
     )
   ).rows[0];
   if (!stored)
@@ -109,6 +125,25 @@ export const POST = packsPost(async (request) => {
   const origin = new URL(process.env.PACKS_APP_URL!);
   const success = new URL('/packs/complete', origin);
   success.hash = `${id}.${checkoutToken}`;
+  const promoMetadata: Record<string, string> = promo
+    ? {
+        'metadata[promo_code]': promo.code,
+        'metadata[promo_percent_off]': String(promo.percentOff),
+        'metadata[original_price_minor]': String(pricing.originalMinor),
+        'metadata[discount_minor]': String(pricing.discountMinor),
+        'payment_intent_data[metadata][promo_code]': promo.code,
+        'payment_intent_data[metadata][promo_percent_off]': String(
+          promo.percentOff,
+        ),
+        'payment_intent_data[metadata][original_price_minor]': String(
+          pricing.originalMinor,
+        ),
+        'payment_intent_data[metadata][discount_minor]': String(
+          pricing.discountMinor,
+        ),
+        'line_items[0][price_data][product_data][description]': `Discount code ${promo.code.toUpperCase()} (${promo.percentOff}% off)`,
+      }
+    : {};
   const session = z.object({ id: sessionIdSchema, url: z.url() }).parse(
     await packsStripe(
       'checkout/sessions',
@@ -125,6 +160,7 @@ export const POST = packsPost(async (request) => {
         'line_items[0][price_data][unit_amount]': String(stored.price_minor),
         'line_items[0][price_data][product_data][name]': stored.product_name,
         'line_items[0][quantity]': '1',
+        ...promoMetadata,
         success_url: success.href,
         cancel_url: new URL(`/packs/${pack.slug}`, origin).href,
       },

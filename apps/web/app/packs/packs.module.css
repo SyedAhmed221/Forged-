@@ -147,3 +147,114 @@
   outline: 2px solid #fff;
   outline-offset: 4px;
 }
+.promoSection {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0f1116;
+}
+.promoLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6e8f1;
+}
+.promoRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.promoRow input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+}
+.promoApply {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding-inline: 16px;
+}
+.promoApplied {
+  display: grid;
+  gap: 12px;
+}
+.promoAppliedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.promoTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid #3c6e4e;
+  border-radius: 6px;
+  background: #112419;
+  color: #9ae6b4;
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.promoRemove {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #393b43;
+  border-radius: 6px;
+  background: transparent;
+  color: #c7cad7;
+  font-size: 13px;
+  cursor: pointer;
+}
+.promoRemove:hover:not(:disabled) {
+  border-color: #8b8f9d;
+  color: #fff;
+}
+.promoSummary {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid #23262e;
+  font-size: 14px;
+}
+.promoSummary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.promoSummary dt {
+  color: var(--muted);
+}
+.promoSummary dd {
+  margin: 0;
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+}
+.promoOriginal {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.promoSavings {
+  color: #9ae6b4;
+}
+.promoTotalRow {
+  padding-top: 6px;
+  border-top: 1px solid #23262e;
+  font-weight: 700;
+  color: #fff;
+}
+.promoTotalRow dt {
+  color: #fff;
+}
+.promoError {
+  color: #f4a4a4 !important;
+  font-size: 13px;
+}
+@media (max-width: 420px) {
+  .promoRow {
+    flex-direction: column;
+  }
+}
