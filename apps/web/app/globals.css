@@ -3299,13 +3299,27 @@ input[type='range'] {
   }
 }
 /* Boxed homepage navigation */
+.marketing-header {
+  gap: 18px;
+}
+.marketing-brand {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  gap: 10px;
+}
+.marketing-brand .brand-logo {
+  width: 56px;
+  height: 38px;
+}
 .marketing-header nav {
   gap: 8px;
-  font-size: 14.5px;
+  font-size: 14px;
 }
 .marketing-header nav a {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid #2a2c34;
   border-radius: 10px;
   background: #0c0d11;
@@ -3324,6 +3338,28 @@ input[type='range'] {
   border-color: #8b8f9d;
   background: #1c1d24;
   color: #fff;
+}
+.marketing-header > .button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 14px;
+  gap: 6px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #e5e7ef;
+  border-color: #e5e7ef;
+  color: #0a0b0e;
+  box-shadow: none;
+}
+.marketing-header > .button:hover:not(:disabled) {
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 2px 14px #ffffff1f;
+  transform: none;
+  filter: none;
 }
 .nav-item-discord {
   color: #c8ceff;
@@ -3385,6 +3421,10 @@ input[type='range'] {
   }
   .marketing-header > .button {
     margin-left: auto;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 14px;
+    font-size: 14px;
   }
   .marketing-header nav {
     order: 3;
@@ -3397,6 +3437,23 @@ input[type='range'] {
   }
   .marketing-header nav a {
     min-height: 44px;
+  }
+}
+@media (max-width: 520px) {
+  .marketing-brand {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    gap: 6px;
+  }
+  .marketing-brand .brand-logo {
+    width: 42px;
+    height: 30px;
+  }
+  .marketing-header > .button {
+    min-height: 38px;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
   }
 }
 @media (max-width: 420px) {

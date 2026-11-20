@@ -149,7 +149,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </nav>
           <Button asChild>
             <Link href="/optimize">
-              Get started <ArrowUpRight size={16} />
+              Get started <ArrowUpRight size={14} />
             </Link>
           </Button>
         </header>
