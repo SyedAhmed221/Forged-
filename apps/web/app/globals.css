@@ -3325,6 +3325,58 @@ input[type='range'] {
   background: #1c1d24;
   color: #fff;
 }
+.nav-item-discord {
+  color: #c8ceff;
+}
+.nav-item-discord svg:first-child {
+  color: #7c87ff;
+}
+.nav-item-discord:hover {
+  color: #fff;
+  background: #1a1d35;
+}
+.nav-external-icon {
+  margin-left: auto;
+  color: #7b8096;
+}
+.community-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 32px;
+  padding: 28px 32px;
+  border: 1px solid #2e3352;
+  border-radius: 14px;
+  background: linear-gradient(125deg, #161829, #0c0d11 70%);
+}
+.community-cta-copy {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+.community-cta h2 {
+  font-size: clamp(20px, 2.2vw, 26px);
+  line-height: 1.2;
+}
+.community-cta p {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: #a9adbc;
+}
+.community-cta-actions {
+  flex-shrink: 0;
+}
+@media (max-width: 780px) {
+  .community-cta {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 22px 20px;
+  }
+  .community-cta-actions .button {
+    width: 100%;
+  }
+}
 @media (max-width: 1180px) {
   .marketing-header {
     padding: 14px 18px;

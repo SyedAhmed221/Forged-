@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { DISCORD_INVITE_URL, DiscordIcon } from '../../components/discord-icon';
 import { faqs, faqSegments, faqStructuredData } from '../../lib/faq';
 
 export const metadata: Metadata = {
@@ -60,10 +61,23 @@ export default function FaqPage() {
       </div>
       <section className="faq-cta">
         <div>
-          <h2>Ready for your next upload?</h2>
-          <p>Drop in your finished export and give it a final pass.</p>
+          <h2>Still have questions?</h2>
+          <p>
+            Drop in your finished export, or ask the community in our Discord.
+          </p>
         </div>
         <div className="faq-cta-actions">
+          <Button asChild className="button-discord">
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <DiscordIcon size={17} />
+              Join Discord
+              <ArrowUpRight size={16} />
+            </a>
+          </Button>
           <Button asChild>
             <Link href="/optimize">
               Optimize a video <ArrowUpRight size={16} />

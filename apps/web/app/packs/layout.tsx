@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { DISCORD_INVITE_URL } from '../../components/discord-icon';
 import styles from './packs.module.css';
 
 export const metadata: Metadata = {
@@ -28,6 +29,9 @@ export default function PacksLayout({
         <Link href="/packs/privacy">Privacy Policy</Link>
         <Link href="/packs/refunds">Refund Policy</Link>
         <Link href="/packs/resend">Resend my download link</Link>
+        <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer">
+          Discord
+        </a>
       </footer>
     </section>
   );

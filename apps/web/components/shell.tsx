@@ -19,6 +19,7 @@ import {
 import { authClient } from '../lib/client';
 import { Button } from './ui/button';
 import { BrandLogo } from './brand-logo';
+import { DISCORD_INVITE_URL, DiscordIcon } from './discord-icon';
 const navigation = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/optimize', label: 'Optimize video', icon: WandSparkles },
@@ -158,6 +159,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <BrandLogo />© {new Date().getFullYear()} Forged Studio
           </span>
           <span>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            <span className="footer-dot">·</span>
             <Link href="/faq">FAQ</Link>
             <span className="footer-dot">·</span>
             <Link href="/settings">Privacy & storage</Link>
@@ -265,6 +274,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
               )}
             </Link>
           ))}
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="nav-item nav-item-discord"
+          >
+            <DiscordIcon size={18} />
+            Discord community
+            <ArrowUpRight size={14} className="nav-external-icon" />
+          </a>
         </nav>
         <div className="sidebar-bottom">
           <div className="privacy-card">
@@ -345,6 +365,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </span>
           <span>
             Made for the final export.<span className="footer-dot">·</span>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            <span className="footer-dot">·</span>
             <Link href="/faq" onNavigate={navigate('/faq')}>
               FAQ
             </Link>

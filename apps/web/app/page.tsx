@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { HeroComparison } from '../components/hero-comparison';
+import { DISCORD_INVITE_URL, DiscordIcon } from '../components/discord-icon';
 import { Button } from '../components/ui/button';
 export default function Home() {
   return (
@@ -105,6 +106,35 @@ export default function Home() {
           </article>
         ))}
       </div>
+      <section
+        className="community-cta"
+        aria-label="Join the Forge Quality Discord"
+      >
+        <div className="community-cta-copy">
+          <div className="eyebrow">
+            <span className="tiny-line" />
+            COMMUNITY
+          </div>
+          <h2>Join the Forge Quality Discord.</h2>
+          <p>
+            Get export tips, creator results, pack support, and early updates
+            straight from the community.
+          </p>
+        </div>
+        <div className="community-cta-actions">
+          <Button asChild size="lg" className="button-discord">
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <DiscordIcon size={19} />
+              Join Discord
+              <ArrowUpRight size={17} />
+            </a>
+          </Button>
+        </div>
+      </section>
       <p className="fineprint">
         Optimization prepares your file for upload. Platform processing and
         final playback quality may vary.
