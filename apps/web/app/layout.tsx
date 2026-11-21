@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Barlow, JetBrains_Mono, Michroma } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { Shell } from '../components/shell';
 
@@ -43,6 +44,7 @@ export default function RootLayout({
     >
       <body>
         <Shell>{children}</Shell>
+        <Analytics />
       </body>
     </html>
   );

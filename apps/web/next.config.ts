@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-const contentSecurityPolicy = `default-src 'self'; script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://*.r2.cloudflarestorage.com${process.env.NODE_ENV === 'development' ? ' ws://127.0.0.1:3000 ws://localhost:3000' : ''}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
+const contentSecurityPolicy = `default-src 'self'; script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://*.r2.cloudflarestorage.com${process.env.NODE_ENV === 'development' ? ' ws://127.0.0.1:3000 ws://localhost:3000' : ''}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
 const config: NextConfig = {
   transpilePackages: ['@tikquick/shared'],
   serverExternalPackages: ['pg'],
