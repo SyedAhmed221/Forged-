@@ -14,6 +14,7 @@ const PACK_PROMO_CODES: readonly PackPromoCode[] = [
   { code: 'blazedd', percentOff: 10 },
   { code: 'zoomstah', percentOff: 10 },
   { code: 'popeyez', percentOff: 10 },
+  { code: 'dustinmyrq', percentOff: 10 },
 ];
 
 export function normalizePromoCode(input: string) {

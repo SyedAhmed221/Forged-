@@ -26,14 +26,24 @@ function promoRequest(body: unknown) {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('Quality pack promo codes', () => {
-  it('supports siv, blazedd, zoomstah, and popeyez as separate 10% off codes', () => {
-    for (const code of ['siv', 'blazedd', 'zoomstah', 'popeyez']) {
+  it('supports siv, blazedd, zoomstah, popeyez, and dustinmyrq as separate 10% off codes', () => {
+    for (const code of [
+      'siv',
+      'blazedd',
+      'zoomstah',
+      'popeyez',
+      'dustinmyrq',
+    ]) {
       expect(findPackPromo(code)).toEqual({ code, percentOff: 10 });
       expect(findPackPromo(`  ${code.toUpperCase()}  `)).toEqual({
         code,
         percentOff: 10,
       });
     }
+    expect(findPackPromo('DustinMYRQ')).toEqual({
+      code: 'dustinmyrq',
+      percentOff: 10,
+    });
   });
 
   it('rejects unknown, empty, or combined promo codes', () => {
@@ -139,7 +149,13 @@ describe('Quality pack promo codes', () => {
   it('validates promo codes through POST /api/packs/promo', async () => {
     vi.stubEnv('PACKS_DATABASE_URL', '');
 
-    for (const code of ['siv', 'BLAZEDD', ' Zoomstah ', 'popeyez']) {
+    for (const code of [
+      'siv',
+      'BLAZEDD',
+      ' Zoomstah ',
+      'popeyez',
+      'DustinMYRQ',
+    ]) {
       const response = await promoPost(
         promoRequest({
           productId: 'max-quality-standard',
