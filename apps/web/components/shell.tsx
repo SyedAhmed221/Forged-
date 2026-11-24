@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
   Package,
+  Users,
 } from 'lucide-react';
 import { authClient } from '../lib/client';
 import { Button } from './ui/button';
@@ -41,6 +42,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       window.location.assign(href);
     };
   const [email, setEmail] = useState<string>();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const sidebar = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -110,13 +112,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const auth = authClient();
     if (!auth) return;
-    void auth.auth
-      .getSession()
-      .then(({ data }) => setEmail(data.session?.user.email));
-    const { data } = auth.auth.onAuthStateChange((_event, session) =>
-      setEmail(session?.user.email),
-    );
-    return () => data.subscription.unsubscribe();
+    let disposed = false;
+    let version = 0;
+    async function syncSession(
+      session: { user: { email?: string }; access_token?: string } | null,
+    ) {
+      const current = ++version;
+      setEmail(session?.user.email);
+      if (!session?.access_token) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/access', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: 'no-store',
+        });
+        const body = res.ok ? await res.json() : { eligible: false };
+        if (!disposed && current === version)
+          setIsAdmin(Boolean(body.eligible));
+      } catch {
+        if (!disposed && current === version) setIsAdmin(false);
+      }
+    }
+    void auth.auth.getSession().then(({ data }) => syncSession(data.session));
+    const { data } = auth.auth.onAuthStateChange((_event, session) => {
+      void syncSession(session);
+    });
+    return () => {
+      disposed = true;
+      data.subscription.unsubscribe();
+    };
   }, []);
   if (path === '/' || path === '/faq') {
     return (
@@ -274,6 +300,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
               )}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onNavigate={navigate('/admin')}
+              onClick={() => setOpen(false)}
+              aria-current={path === '/admin' ? 'page' : undefined}
+              className={`nav-item ${path === '/admin' ? 'active' : ''}`}
+            >
+              <Users size={18} />
+              Admin
+            </Link>
+          )}
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"
@@ -345,7 +383,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <ChevronRight size={13} />
             <strong>
               {navigation.find((n) => n.href === path)?.label ||
-                (path === '/login' ? 'Account' : 'Welcome')}
+                (path === '/admin'
+                  ? 'Admin'
+                  : path === '/login'
+                    ? 'Account'
+                    : 'Welcome')}
             </strong>
           </div>
           <div className="topbar-right">

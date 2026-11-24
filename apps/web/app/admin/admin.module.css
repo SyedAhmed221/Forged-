@@ -1,0 +1,254 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tabsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid #292b32;
+  border-radius: 10px;
+  background: #0d0e12;
+}
+
+.tabButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #a3a6b4;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.tabButton:hover {
+  color: #fff;
+}
+
+.tabActive {
+  border-color: #3d404c;
+  background: #1a1c24;
+  color: #fff;
+}
+
+.tabCount {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #232631;
+  color: #d6d9e5;
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #2c2f38;
+  border-radius: 8px;
+  background: #101116;
+  color: #a8abb8;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.filterPill:hover {
+  border-color: #4b4f5d;
+  color: #fff;
+}
+
+.filterPillActive {
+  border-color: #8b8f9d;
+  background: #1e2029;
+  color: #fff;
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: #7d808f;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #2e313b;
+  border-radius: 8px;
+  background: #0b0c10;
+  color: #f2f3f7;
+  font-size: 14px;
+}
+
+.searchInput::placeholder {
+  color: #6e7180;
+}
+
+.searchInput:focus {
+  border-color: #6d7182;
+}
+
+.emailCell {
+  font-weight: 500;
+  color: #f2f3f7;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+  font-size: 13px;
+}
+
+.planBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.planPremium {
+  border: 1px solid #2f6b47;
+  background: #11261a;
+  color: #9ae6b4;
+}
+
+.planFree {
+  border: 1px solid #353844;
+  background: #161820;
+  color: #b7bac6;
+}
+
+.planPending {
+  border: 1px solid #6b562f;
+  background: #241d11;
+  color: #f2d08b;
+}
+
+.planRefunded {
+  border: 1px solid #6b303a;
+  background: #251317;
+  color: #f4a4b0;
+}
+
+.discountTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border: 1px solid #2f6b47;
+  border-radius: 5px;
+  background: #102418;
+  color: #9ae6b4;
+  font-size: 11px;
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+}
+
+.testTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border: 1px solid #3a3d4a;
+  border-radius: 5px;
+  background: #171922;
+  color: #a8abb8;
+  font-size: 11px;
+}
+
+.updatedAt {
+  font-size: 13px;
+  color: #7d808f;
+}
+
+.setupCard {
+  padding: 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.setupCard code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #171922;
+  color: #e4e6f0;
+  font-family: var(--font-jetbrains-mono), Consolas, monospace;
+  font-size: 13px;
+}
+
+@media (max-width: 1020px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  .toolbar {
+    padding: 16px;
+  }
+  .searchWrap {
+    max-width: none;
+    width: 100%;
+  }
+}
