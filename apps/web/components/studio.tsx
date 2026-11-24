@@ -281,7 +281,7 @@ export function Studio({
       setError(
         error instanceof Error
           ? error.message
-          : 'Instant patching failed. Try standard upload.',
+          : 'Instant patching failed. Choose Patch normally to continue.',
       );
     } finally {
       setInstantBusy(false);
@@ -717,7 +717,7 @@ export function Studio({
                   </strong>
                   <small>
                     {needsReencoding
-                      ? `This file is ${(file.size / 1_000_000).toFixed(1)} MB (${(file.size / 1048576).toFixed(1)} MiB). Premium files above 300 MB (about 286 MiB) need re-encoding. ${encoder ? 'Select Upload to Video History to continue.' : 'Turn it on to continue.'}`
+                      ? `This file is ${(file.size / 1_000_000).toFixed(1)} MB (${(file.size / 1048576).toFixed(1)} MiB). Premium files above 300 MB (about 286 MiB) need re-encoding. ${encoder ? 'Choose Patch normally to continue.' : 'Turn it on to continue.'}`
                       : 'Enable only if your video needs compression before patching.'}
                   </small>
                 </label>
@@ -759,43 +759,53 @@ export function Studio({
                   Zernio after optimization.
                 </span>
                 {signedIn && instantPatchEnabled && (
-                  <Button
-                    onClick={patchInstantly}
-                    disabled={
-                      !file ||
-                      exceedsUploadLimit ||
-                      !/\.mp4$/i.test(file.name) ||
-                      encoder ||
-                      patchMethod !== 'orion' ||
-                      Boolean(instantResult) ||
-                      busy ||
-                      instantBusy
-                    }
-                  >
-                    {instantBusy
-                      ? 'Checking and patching…'
-                      : 'Patch with Forge Engine'}
-                  </Button>
+                  <div className="upload-action">
+                    <Button
+                      onClick={patchInstantly}
+                      aria-describedby="forge-patch-note"
+                      disabled={
+                        !file ||
+                        exceedsUploadLimit ||
+                        !/\.mp4$/i.test(file.name) ||
+                        encoder ||
+                        patchMethod !== 'orion' ||
+                        Boolean(instantResult) ||
+                        busy ||
+                        instantBusy
+                      }
+                    >
+                      {instantBusy
+                        ? 'Checking and patching…'
+                        : 'Patch with Forge Engine'}
+                    </Button>
+                    <small id="forge-patch-note">Quicker patching.</small>
+                  </div>
                 )}
                 {signedIn ? (
-                  <Button
-                    onClick={upload}
-                    disabled={
-                      !file || exceedsUploadLimit || busy || instantBusy
-                    }
-                    aria-describedby="history-upload-description"
-                  >
-                    {busy ? (
-                      <LoaderCircle size={17} className="spin" />
-                    ) : (
-                      <Upload size={17} />
-                    )}{' '}
-                    {finalizingUpload
-                      ? 'Verifying upload…'
-                      : busy
-                        ? 'Uploading…'
-                        : 'Upload to Video History'}
-                  </Button>
+                  <div className="upload-action">
+                    <Button
+                      onClick={upload}
+                      disabled={
+                        !file || exceedsUploadLimit || busy || instantBusy
+                      }
+                      aria-describedby="normal-patch-note history-upload-description"
+                    >
+                      {busy ? (
+                        <LoaderCircle size={17} className="spin" />
+                      ) : (
+                        <Upload size={17} />
+                      )}{' '}
+                      {finalizingUpload
+                        ? 'Verifying upload…'
+                        : busy
+                          ? 'Uploading…'
+                          : 'Patch normally'}
+                    </Button>
+                    <small id="normal-patch-note">
+                      Slower but more reliable. Use this if Forge Engine doesn’t
+                      work.
+                    </small>
+                  </div>
                 ) : (
                   <Button asChild>
                     <Link href="/login">

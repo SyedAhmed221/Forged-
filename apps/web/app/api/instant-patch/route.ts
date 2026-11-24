@@ -129,7 +129,7 @@ async function requestPatch(
   }
   throw new AppError(
     'PATCH_UNAVAILABLE',
-    'Instant patching is temporarily unavailable. Try again or use standard upload.',
+    'Instant patching is temporarily unavailable. Try again or choose Patch normally.',
     503,
   );
 }
@@ -169,7 +169,7 @@ export const POST = endpoint(async (request, userId) => {
       if (!slot.rows[0].acquired)
         throw new AppError(
           'PATCH_BUSY',
-          'The instant patcher is busy. Try again or use standard upload.',
+          'The instant patcher is busy. Try again or choose Patch normally.',
           409,
         );
       const patch = await requestPatch(key, fileSize, prefix, request.signal);

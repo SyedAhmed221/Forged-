@@ -39,7 +39,7 @@ test('client can sign in, upload, process, download and delete a video', async (
       r.request().method() === 'POST',
   );
   await page
-    .getByRole('button', { name: 'Upload to Video History', exact: true })
+    .getByRole('button', { name: 'Patch normally', exact: true })
     .click();
   const creation = await created;
   expect(creation.status(), 'The deployed upload API must be configured').toBe(
