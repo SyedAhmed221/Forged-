@@ -59,6 +59,81 @@ const patchResponse = z.object({
 });
 class UseUpload extends Error {}
 
+async function requestPatch(
+  key: string,
+  fileSize: number,
+  prefix: ArrayBuffer,
+  requestSignal: AbortSignal,
+) {
+  const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(12000)]);
+  const passport = new URL(
+    'https://api.tikqcapi.site/passport/api/thirdparty/genotu',
+  );
+  passport.searchParams.set('key', key);
+  let stage = 'passport';
+  let status: number | undefined;
+  try {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      stage = 'passport';
+      status = undefined;
+      const ticket = await fetch(passport, { ...providerOptions, signal });
+      status = ticket.status;
+      if (!ticket.ok) {
+        await ticket.body?.cancel().catch(() => {});
+        throw new Error('Token unavailable');
+      }
+      const auth = credentials.parse(
+        JSON.parse(new TextDecoder().decode(await boundedBody(ticket, 8192))),
+      );
+      const provider = new URL('https://byte.tikqcapi.site/api/v2/patch');
+      provider.search = new URLSearchParams({
+        auth_userid: auth.user_id,
+        auth_token: auth.token,
+        selectmethod: 'orion',
+      }).toString();
+      stage = 'patch';
+      status = undefined;
+      const response = await fetch(provider, {
+        ...providerOptions,
+        signal,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Original-File-Size': String(fileSize),
+        },
+        body: prefix,
+      });
+      status = response.status;
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => {});
+        if ([400, 413, 422, 501].includes(status)) throw new UseUpload();
+        // TikQuick consumes the token even on these errors.
+        if (attempt === 1 && [401, 403, 503].includes(status)) continue;
+        throw new Error('Patch unavailable');
+      }
+      return patchResponse.parse(
+        JSON.parse(
+          new TextDecoder().decode(await boundedBody(response, 2_400_000)),
+        ),
+      );
+    }
+  } catch (error) {
+    if (error instanceof UseUpload) throw error;
+    if (!requestSignal.aborted) {
+      console.warn('instant_patch_provider_failure', {
+        stage,
+        status,
+        timedOut: signal.aborted,
+      });
+    }
+  }
+  throw new AppError(
+    'PATCH_UNAVAILABLE',
+    'Instant patching is temporarily unavailable. Try again or use standard upload.',
+    503,
+  );
+}
+
 export const POST = endpoint(async (request, userId) => {
   const key = process.env.TIKQUICK_API_KEY;
   if (!key) return { fallback: true };
@@ -97,55 +172,7 @@ export const POST = endpoint(async (request, userId) => {
           'The instant patcher is busy. Try again or use standard upload.',
           409,
         );
-      const signal = AbortSignal.any([
-        request.signal,
-        AbortSignal.timeout(8000),
-      ]);
-      const passport = new URL(
-        'https://api.tikqcapi.site/passport/api/thirdparty/genotu',
-      );
-      passport.searchParams.set('key', key);
-      let patch: z.infer<typeof patchResponse>;
-      try {
-        const ticket = await fetch(passport, { ...providerOptions, signal });
-        if (!ticket.ok) throw new Error('Token unavailable');
-        const auth = credentials.parse(
-          JSON.parse(new TextDecoder().decode(await boundedBody(ticket, 8192))),
-        );
-        const provider = new URL('https://byte.tikqcapi.site/api/v2/patch');
-        provider.search = new URLSearchParams({
-          auth_userid: auth.user_id,
-          auth_token: auth.token,
-          selectmethod: 'orion',
-        }).toString();
-        const response = await fetch(provider, {
-          ...providerOptions,
-          signal,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'X-Original-File-Size': String(fileSize),
-          },
-          body: prefix,
-        });
-        if ([400, 413, 422, 501].includes(response.status)) {
-          await response.body?.cancel().catch(() => {});
-          throw new UseUpload();
-        }
-        if (!response.ok) throw new Error('Patch unavailable');
-        patch = patchResponse.parse(
-          JSON.parse(
-            new TextDecoder().decode(await boundedBody(response, 2_400_000)),
-          ),
-        );
-      } catch (error) {
-        if (error instanceof UseUpload) throw error;
-        throw new AppError(
-          'PATCH_UNAVAILABLE',
-          'Instant patching is temporarily unavailable. Try again or use standard upload.',
-          503,
-        );
-      }
+      const patch = await requestPatch(key, fileSize, prefix, request.signal);
       const header = Buffer.from(patch.patched_prefix_b64, 'base64');
       const ghostSize = patch.ghost_sample_hex.length / 2;
       if (
