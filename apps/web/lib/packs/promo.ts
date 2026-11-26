@@ -3,6 +3,7 @@ import type { Pack } from './catalog';
 export type PackPromoCode = {
   readonly code: string;
   readonly percentOff: number;
+  readonly expiresAt?: number;
 };
 
 /**
@@ -15,6 +16,11 @@ const PACK_PROMO_CODES: readonly PackPromoCode[] = [
   { code: 'zoomstah', percentOff: 10 },
   { code: 'popeyez', percentOff: 10 },
   { code: 'dustinmyrq', percentOff: 10 },
+  {
+    code: 'blackfri10',
+    percentOff: 10,
+    expiresAt: Date.parse('2026-12-03T16:05:00Z'),
+  },
 ];
 
 export function normalizePromoCode(input: string) {
@@ -27,7 +33,12 @@ export function findPackPromo(
   if (!input) return undefined;
   const normalized = normalizePromoCode(input);
   if (!normalized) return undefined;
-  return PACK_PROMO_CODES.find((entry) => entry.code === normalized);
+  const now = Date.now();
+  return PACK_PROMO_CODES.find(
+    (entry) =>
+      entry.code === normalized &&
+      (entry.expiresAt === undefined || now < entry.expiresAt),
+  );
 }
 
 export type PackPricing = {

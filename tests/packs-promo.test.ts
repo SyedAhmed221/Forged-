@@ -23,9 +23,33 @@ function promoRequest(body: unknown) {
   });
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 describe('Quality pack promo codes', () => {
+  it('quotes BLACKFRI10 at 10% off until its expiry, then rejects it', async () => {
+    vi.stubEnv('PACKS_DATABASE_URL', '');
+    const request = () =>
+      promoRequest({
+        productId: 'max-quality-standard',
+        promoCode: ' BLACKFRI10 ',
+      });
+
+    vi.setSystemTime(new Date('2026-12-03T16:04:59.999Z'));
+    const active = await promoPost(request());
+    expect(active.status).toBe(200);
+    expect(await active.json()).toMatchObject({
+      code: 'blackfri10',
+      percentOff: 10,
+      finalMinor: 6660,
+    });
+
+    vi.setSystemTime(new Date('2026-12-03T16:05:00Z'));
+    expect((await promoPost(request())).status).toBe(400);
+  });
+
   it('supports siv, blazedd, zoomstah, popeyez, and dustinmyrq as separate 10% off codes', () => {
     for (const code of [
       'siv',
